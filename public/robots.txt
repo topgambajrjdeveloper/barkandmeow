@@ -1,0 +1,10 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://barkandmeow.com
+
+# Sitemaps
+Sitemap: https://barkandmeow.com/sitemap.xml
+Sitemap: https://barkandmeow.com/server-sitemap.xml

@@ -1,0 +1,262 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String             @id @default(cuid())
+  username             String             @unique
+  email                String             @unique
+  bio                  String? // Añadimos este campo
+  password             String
+  profileImage         String?
+  petName              String
+  petType              String
+  petImage             String?
+  isPublicProfile      Boolean            @default(true)
+  location             String?
+  latitude             Float?
+  longitude            Float?
+  isEmailConfirmed     Boolean            @default(false)
+  confirmationToken    String?
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  refreshToken         String?
+  refreshTokenExpiry   DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  posts                Post[]
+  comments             Comment[]
+  postLikes            PostLike[]
+  followers            Follows[]          @relation("following")
+  following            Follows[]          @relation("follower")
+  pets                 Pet[]
+  petFollows           PetFollows[]
+  pushSubscriptions    PushSubscription[]
+  taggedInPosts        TaggedUser[]
+}
+
+model Pet {
+  id                       String       @id @default(cuid())
+  name                     String
+  type                     String
+  breed                    String?
+  age                      Int?
+  image                    String?
+  description              String?
+  user                     User         @relation(fields: [userId], references: [id])
+  userId                   String
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+  followers                PetFollows[]
+  vaccinationRemindersEnabled Boolean    @default(false)
+
+  // New fields for Digital Health Card
+  healthCard HealthCard?
+
+  // Updated Passport relation
+  passport Passport?
+  
+  // Relaciones para el sistema de publicaciones
+  posts      Post[]
+  taggedInPosts TaggedPet[]
+}
+
+model HealthCard {
+  id               String          @id @default(cuid())
+  petId            String          @unique
+  pet              Pet             @relation(fields: [petId], references: [id])
+  veterinarianName String
+  clinicName       String
+  clinicAddress    String
+  clinicPhone      String
+  clinicEmail      String
+  lastCheckupDate  DateTime?
+  nextCheckupDate  DateTime?
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  vaccinations     Vaccination[]
+  medications      Medication[]
+  medicalHistory   MedicalRecord[]
+}
+
+model Vaccination {
+  id               String     @id @default(cuid())
+  name             String
+  date             DateTime
+  nextDueDate      DateTime?
+  expiryDate       DateTime?
+  batchNumber      String?
+  veterinarianName String?
+  notes            String?
+  healthCardId     String
+  healthCard       HealthCard @relation(fields: [healthCardId], references: [id], onDelete: Cascade)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+model Medication {
+  id           String     @id @default(cuid())
+  name         String
+  dosage       String
+  frequency    String
+  startDate    DateTime
+  endDate      DateTime?
+  notes        String?
+  healthCardId String
+  healthCard   HealthCard @relation(fields: [healthCardId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model MedicalRecord {
+  id               String     @id @default(cuid())
+  date             DateTime
+  description      String
+  diagnosis        String?
+  treatment        String?
+  veterinarianName String?
+  notes            String?
+  healthCardId     String
+  healthCard       HealthCard @relation(fields: [healthCardId], references: [id], onDelete: Cascade)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+model Passport {
+  id                  String    @id @default(cuid())
+  pet                 Pet       @relation(fields: [petId], references: [id])
+  petId               String    @unique
+  passportNumber      String
+  issuedDate          DateTime
+  expiryDate          DateTime?
+  issuingCountry      String
+  microchipNumber     String?
+  species             String
+  breed               String
+  sex                 String
+  dateOfBirth         DateTime
+  transponderCode     String?
+  transponderReadDate DateTime?
+  transponderLocation String?
+  tattooCode          String?
+  tattooDate          DateTime?
+  tattooLocation      String?
+  veterinarianName    String
+  clinicAddress       String
+  clinicPostalCode    String
+  clinicCity          String
+  clinicCountry       String
+  clinicPhone         String
+  clinicEmail         String
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+// Sistema de publicaciones actualizado
+model Post {
+  id          String      @id @default(cuid())
+  content     String?
+  imageUrl    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  userId      String
+  petId       String?
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pet         Pet?        @relation(fields: [petId], references: [id], onDelete: SetNull)
+  likes       PostLike[]
+  comments    Comment[]
+  hashtags    Hashtag[]   @relation("PostToHashtag")
+  taggedUsers TaggedUser[]
+  taggedPets  TaggedPet[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  postId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model PostLike {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+}
+
+model Hashtag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  posts     Post[]   @relation("PostToHashtag")
+}
+
+model TaggedUser {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model TaggedPet {
+  id        String   @id @default(cuid())
+  petId     String
+  postId    String
+  createdAt DateTime @default(now())
+  pet       Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Follows {
+  follower    User     @relation("follower", fields: [followerId], references: [id])
+  followerId  String
+  following   User     @relation("following", fields: [followingId], references: [id])
+  followingId String
+  createdAt   DateTime @default(now())
+
+  @@id([followerId, followingId])
+}
+
+model PetFollows {
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  pet       Pet      @relation(fields: [petId], references: [id])
+  petId     String
+  createdAt DateTime @default(now())
+
+  @@id([userId, petId])
+}
+
+model PushSubscription {
+  id           String   @id @default(cuid())
+  userId       String
+  subscription String   @db.Text // JSON string de la suscripción push
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
