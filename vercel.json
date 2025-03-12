@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "yarn prisma generate && next build",
+  "buildCommand": "next build",
   "outputDirectory": ".next",
   "framework": "nextjs",
   "builds": [
