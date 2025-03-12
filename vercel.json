@@ -1,9 +1,12 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "package.json",
-        "use": "@vercel/next"
-      }
-    ]
-  }
+  "version": 2,
+  "buildCommand": "yarn prisma generate && next build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ]
+}
