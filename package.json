@@ -6,7 +6,6 @@
     "devt": "next dev --turbopack",
     "dev": "next dev ",
     "build": "prisma generate && next build",
-    "postbuild": "next-sitemap || true",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate"
