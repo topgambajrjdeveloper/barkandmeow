@@ -1,2 +1,6 @@
 node_modules
-.next
+.git
+.next/cache
+build/cache
+public/large-assets
+# Agrega aquí cualquier otra carpeta con archivos grandes que no sean necesarios para la producción
