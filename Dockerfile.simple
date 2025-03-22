@@ -1,0 +1,39 @@
+# Imagen base
+FROM node:20-alpine
+
+# Directorio de trabajo
+WORKDIR /app
+
+# Instalar dependencias necesarias
+RUN apk add --no-cache libc6-compat openssl
+
+# Copiar archivos de configuración
+COPY package.json ./
+COPY package-lock.json* ./
+COPY tsconfig.json ./
+COPY next.config.ts ./
+COPY prisma ./prisma/
+
+# Instalar dependencias
+RUN npm install --legacy-peer-deps
+
+# Generar cliente de Prisma
+RUN npx prisma generate
+
+# Copiar código fuente
+COPY . .
+
+# Construir la aplicación
+RUN npm run build
+
+# Exponer puerto
+EXPOSE 3000
+
+# Variables de entorno
+ENV PORT=3000
+ENV NODE_ENV=production
+ENV HOSTNAME="0.0.0.0"
+
+# Comando para iniciar la aplicación
+CMD ["npm", "start"]
+
