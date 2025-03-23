@@ -8,6 +8,7 @@ import { useUser } from "@/contexts/UserContext"
 import { signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
+import Image from "next/image"
 
 export function Header() {
   const { user, loading } = useUser()
@@ -25,19 +26,15 @@ export function Header() {
 
   // Registrar información para depuración
   useEffect(() => {
-    if (user) {
-      console.log("Header: Usuario cargado", {
-        id: userId,
-        name: displayName,
-        profileImage: profileImage,
-      })
+    if (!user) {
+      console.log("Header: Usuario cargado")
     }
   }, [user, userId, displayName, profileImage])
 
   const menuItems = [
     { href: "/feed", label: "Feed" },
     { href: "/explore", label: "Explorar" },
-    // { href: "/messages", label: "Mensajes" },
+    { href: "/contact", label: "Contactar" },
   ]
 
   // No renderizar nada durante SSR para evitar errores de hidratación
@@ -49,7 +46,7 @@ export function Header() {
         <div className="flex h-14 items-center justify-between">
           <div className="flex items-center gap-2 font-bold">
             <Link href={user ? "/feed" : "/"} className="flex">
-              <PawPrint className="h-6 w-6 text-primary" />
+              <Image src="/favicon.svg" alt="BarkAndMeow Logo" width={32} height={32} className="object-contain" />
               <span className="text-xl">BarkAndMeow</span>
             </Link>
           </div>

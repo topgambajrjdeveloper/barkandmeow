@@ -3,8 +3,8 @@ User-agent: *
 Allow: /
 
 # Host
-Host: https://barkandmeow.com
+Host: https://barkandmeow-latest.onrender.com
 
 # Sitemaps
-Sitemap: https://barkandmeow.com/sitemap.xml
-Sitemap: https://barkandmeow.com/server-sitemap.xml
+Sitemap: https://barkandmeow-latest.onrender.com/sitemap.xml
+Sitemap: https://barkandmeow-latest.onrender.com/server-sitemap.xml

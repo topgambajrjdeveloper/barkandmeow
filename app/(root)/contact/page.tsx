@@ -65,14 +65,19 @@ export default function ContactPage() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                <a href="mailto:info@barkandmeow.app" className="hover:text-primary">
+                {/* <a href="mailto:info@barkandmeow.app" className="hover:text-primary">
                   info@barkandmeow.app
-                </a>
+                </a> */}
+                <li>
+              <a href="https://wa.me/34649599475" className="text-primary hover:underline">
+                Contactar por WhatsApp
+              </a>
+              </li>
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Phone className="h-5 w-5 text-primary" />
@@ -102,7 +107,7 @@ export default function ContactPage() {
                 28001 Madrid, España
               </p>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         <div className="md:col-span-2">

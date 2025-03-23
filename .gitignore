@@ -9,6 +9,11 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+.git
+.next/cache
+build/cache
+public/large-assets
+# Agrega aquí cualquier otra carpeta con archivos grandes que no sean necesarios para la producción
 
 # testing
 /coverage
@@ -43,3 +48,8 @@ next-env.d.ts
 # readme.txt
 readme.txt
 .vercel
+
+
+.next/cache/
+**/cache/
+**/*.pack
