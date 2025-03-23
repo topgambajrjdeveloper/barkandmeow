@@ -285,8 +285,8 @@ export default function CreatePost({ user, userPets, onPostCreated }: CreatePost
       <CardHeader className="pb-3">
         <div className="flex items-center space-x-4">
           <Avatar>
-            <AvatarImage src={user.profileImage || "/placeholder-user.jpg"} alt={user.username} />
-            <AvatarFallback>{user.username[0]}</AvatarFallback>
+            <AvatarImage src={user?.profileImage || "/placeholder-user.jpg"} alt={user?.username} />
+            <AvatarFallback>{user?.username[0]}</AvatarFallback>
           </Avatar>
           <div>
             <p className="text-sm font-medium leading-none">¿Qué está haciendo tu mascota hoy?</p>

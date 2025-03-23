@@ -21,6 +21,7 @@ export const registerSchema = z.object({
   location: z.string().min(2, "La localización debe tener al menos 2 caracteres").optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
+  role: z.enum(["USER", "ADMIN"]).default("USER"), // Añade esta línea si quieres validar el rol
 })
 
 export const loginSchema = z.object({

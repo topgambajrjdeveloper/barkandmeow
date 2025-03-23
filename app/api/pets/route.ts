@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
-import { PrismaClient } from "@prisma/client"
 import { uploadImage } from "@/lib/cloudinary"
-
-const prisma = new PrismaClient()
+import prisma from "@/lib/prismadb"
 
 export async function POST(request: Request) {
   try {

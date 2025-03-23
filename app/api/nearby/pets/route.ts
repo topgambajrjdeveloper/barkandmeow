@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
-import { PrismaClient } from "@prisma/client"
-
-const prisma = new PrismaClient()
+import prisma from "@/lib/prismadb"
 
 // Función para calcular la distancia entre dos puntos (fórmula de Haversine)
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {

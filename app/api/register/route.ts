@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server"
 import { hash } from "bcryptjs"
-import { PrismaClient } from "@prisma/client"
+import {  UserRole } from "@prisma/client" // Importa UserRole
 import { registerSchema } from "@/lib/validations"
 import { uploadImage } from "@/lib/cloudinary"
 import { sendConfirmationEmail } from "@/lib/email"
 import crypto from "crypto"
-
-const prisma = new PrismaClient()
+import prisma from "@/lib/prismadb"
 
 export async function POST(request: Request) {
   try {
@@ -68,7 +67,7 @@ export async function POST(request: Request) {
     // Generate confirmation token
     const confirmationToken = crypto.randomBytes(32).toString("hex")
 
-    // Create user
+    // Create user - Añade el campo role aquí
     const user = await prisma.user.create({
       data: {
         username,
@@ -84,6 +83,7 @@ export async function POST(request: Request) {
         longitude: body.longitude,
         confirmationToken,
         isEmailConfirmed: false,
+        role: UserRole.USER, // Añade esta línea para establecer el rol predeterminado
       },
     })
 

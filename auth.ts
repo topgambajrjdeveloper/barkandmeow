@@ -33,6 +33,13 @@ export const {
 
           const user = await prisma.user.findUnique({
             where: { email },
+            select: {
+              id: true,
+              email: true,
+              username: true,
+              password: true,
+              role: true, // Añadimos el campo role a la consulta
+            },
           })
 
           if (!user) {
@@ -48,7 +55,7 @@ export const {
           return {
             id: user.id.toString(),
             email: user.email,
-            name: user.name,
+            role: user.role, // Incluimos el rol en el token
           }
         } catch (error) {
           console.error("Auth error:", error)
@@ -61,12 +68,14 @@ export const {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id.toString()
+        token.role = user.role // Añadimos el rol al token
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string
+        session.user.role = token.role as string // Añadimos el rol a la sesión
       }
       return session
     },
@@ -81,4 +90,13 @@ export const {
   },
   secret: process.env.NEXTAUTH_SECRET,
 })
+
+// Función de ayuda para verificar si un usuario es administrador
+export const isAdmin = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  })
+  return user?.role === "ADMIN"
+}
 

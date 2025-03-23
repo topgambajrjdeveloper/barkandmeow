@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
 import { auth } from "@/auth"
 import { sendConfirmationEmail } from "@/lib/email"
 import crypto from "crypto"
-
-const prisma = new PrismaClient()
+import prisma from "@/lib/prismadb"
 
 export async function POST() {
   try {

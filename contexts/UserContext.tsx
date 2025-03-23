@@ -1,42 +1,40 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
 import type React from "react"
-
-import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { createContext, useState, useEffect, useContext, useCallback } from "react"
 import { useSession } from "next-auth/react"
 
-// Definir una interfaz para el usuario
-interface User {
+// Define the User type
+export type User = {
   id: string
-  name?: string
-  username?: string
-  email?: string
-  profileImage?: string | null
-  [key: string]: any // Para permitir otras propiedades
+  name?: string | null
+  email?: string | null
+  image?: string | null
+  role?: string | null // Añadimos el campo role para identificar administradores
+  // Add other user properties here as needed
 }
 
-interface UserContextType {
+// Define the UserContext type
+type UserContextType = {
   user: User | null
   loading: boolean
-  updateUser: (userData: User | null) => void
-  setUser: (userData: User | null) => void // Alias para updateUser para compatibilidad
   refreshUser: () => Promise<void>
 }
 
+// Create the UserContext
 const UserContext = createContext<UserContextType>({
   user: null,
-  loading: true,
-  updateUser: () => {},
-  setUser: () => {}, // Añadido para compatibilidad
+  loading: false,
   refreshUser: async () => {},
 })
 
-export const UserProvider = ({ children }: { children: React.ReactNode }) => {
+// Create the UserProvider component
+export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { data: session, status } = useSession()
   const [user, setUserState] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState<boolean>(false)
 
-  // Mejorar la función fetchUser para asegurar que el ID de usuario se cargue correctamente
   const fetchUser = useCallback(async () => {
     // Si no hay sesión, no intentar cargar el usuario
     if (status === "unauthenticated") {
@@ -60,7 +58,15 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setLoading(true)
       console.log("UserContext: Fetching user data, session status:", status)
-      console.log("UserContext: Session user ID:", session?.user?.id)
+
+      // Verificar si tenemos un ID de usuario antes de hacer la solicitud
+      if (!session?.user?.id) {
+        console.log("UserContext: No user ID available, skipping fetch")
+        setLoading(false)
+        return
+      }
+
+      console.log("UserContext: Session user ID:", session.user.id)
 
       // Añadir un timestamp para evitar caché
       const timestamp = new Date().getTime()
@@ -91,8 +97,30 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
           userData.id = session.user.id
           console.log("UserContext: Added missing user ID from session", userData)
         }
+
+        // Asegurarse de que el rol del usuario esté presente
+        if (userData && !userData.role && session?.user?.role) {
+          userData.role = session.user.role
+          console.log("UserContext: Added missing user role from session", userData)
+        }
+
         setUserState(userData)
       } else {
+        // Si la API falla, intentar usar los datos de la sesión directamente
+        if (session?.user) {
+          const sessionUser: User = {
+            id: session.user.id,
+            name: session.user.name,
+            email: session.user.email,
+            image: session.user.image,
+            role: (session.user as any).role || null, // Obtener el rol de la sesión
+          }
+          console.log("UserContext: Using session data as fallback", sessionUser)
+          setUserState(sessionUser)
+          setLoading(false)
+          return
+        }
+
         // Intentar obtener más información sobre el error
         let errorMessage = `Error ${response.status}`
         try {
@@ -116,37 +144,56 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
 
-        console.error("UserContext: Error fetching user data:", errorMessage)
+        // Solo mostrar error en consola si no es un error 401 (no autenticado)
+        if (response.status !== 401) {
+          console.error("UserContext: Error fetching user data:", errorMessage)
+        } else {
+          console.log("UserContext: User not authenticated, skipping error")
+        }
         setUserState(null)
       }
     } catch (error) {
+      // Si hay un error en la solicitud, intentar usar los datos de la sesión directamente
+      if (session?.user) {
+        const sessionUser: User = {
+          id: session.user.id,
+          name: session.user.name,
+          email: session.user.email,
+          image: session.user.image,
+          role: (session.user as any).role || null, // Obtener el rol de la sesión
+        }
+        console.log("UserContext: Using session data as fallback after error", sessionUser)
+        setUserState(sessionUser)
+        setLoading(false)
+        return
+      }
+
       if (error.name === "AbortError") {
-        console.error("UserContext: Request timed out")
+        console.log("UserContext: Request timed out")
       } else {
-        console.error("UserContext: Failed to fetch user:", error)
+        // Usar console.log en lugar de console.error para errores esperados
+        console.log("UserContext: Failed to fetch user:", error)
       }
       setUserState(null)
     } finally {
       setLoading(false)
     }
-  }, [status, session?.user?.id])
+  }, [status, session?.user])
 
   useEffect(() => {
     fetchUser()
   }, [fetchUser])
 
-  // Función para actualizar el usuario - mantiene la API existente
-  const updateUser = (userData: User | null) => {
-    console.log("UserContext: Updating user data", userData)
-    setUserState(userData)
-  }
-
-  // Alias para updateUser para compatibilidad con el componente LoginForm
-  const setUser = updateUser
-
-  // Mejorar la función refreshUser para asegurar que los datos se actualicen correctamente
   const refreshUser = async () => {
     console.log("Refrescando datos del usuario...")
+
+    // Verificar si tenemos un ID de usuario antes de hacer la solicitud
+    if (!session?.user?.id) {
+      console.log("UserContext: No user ID available, skipping refresh")
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
 
@@ -164,24 +211,40 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       if (response.ok) {
         const userData = await response.json()
         console.log("Datos actualizados del usuario:", userData)
+
+        // Asegurarse de que el rol del usuario esté presente
+        if (userData && !userData.role && session?.user?.role) {
+          userData.role = session.user.role
+          console.log("UserContext: Added missing user role from session during refresh", userData)
+        }
+
         setUserState(userData)
       } else {
-        console.error("Error al refrescar los datos del usuario:", response.status)
+        // Solo mostrar error en consola si no es un error 401 (no autenticado)
+        if (response.status !== 401) {
+          console.log("Error al refrescar los datos del usuario:", response.status)
+        }
         // No establecer user a null aquí para evitar perder los datos actuales en caso de error
       }
 
       console.log("Datos del usuario actualizados correctamente")
     } catch (error) {
-      console.error("Error al refrescar los datos del usuario:", error)
+      // Usar console.log en lugar de console.error
+      console.log("Error al refrescar los datos del usuario:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <UserContext.Provider value={{ user, loading, updateUser, setUser, refreshUser }}>{children}</UserContext.Provider>
-  )
+  return <UserContext.Provider value={{ user, loading, refreshUser }}>{children}</UserContext.Provider>
 }
 
-export const useUser = () => useContext(UserContext)
+// Create a custom hook to use the UserContext
+export const useUser = () => {
+  const context = useContext(UserContext)
+  if (!context) {
+    throw new Error("useUser must be used within a UserProvider")
+  }
+  return context
+}
 

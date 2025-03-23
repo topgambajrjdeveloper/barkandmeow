@@ -13,11 +13,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Añadir enum para roles de usuario
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id                   String             @id @default(cuid())
   username             String             @unique
   email                String             @unique
   bio                  String? // Añadimos este campo
+  // Añadir campo de rol con valor predeterminado USER
+  role                 UserRole 
   password             String
   profileImage         String?
   petName              String
@@ -44,6 +52,7 @@ model User {
   petFollows           PetFollows[]
   pushSubscriptions    PushSubscription[]
   taggedInPosts        TaggedUser[]
+  pages                Page[]
 }
 
 model Pet {
@@ -258,5 +267,20 @@ model PushSubscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// Añadir modelo para páginas estáticas
+model Page {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  content         String    @db.Text
+  metaTitle       String?
+  metaDescription String?   @db.Text
+  isPublished     Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  authorId        String
+  author          User      @relation(fields: [authorId], references: [id])
 }
 

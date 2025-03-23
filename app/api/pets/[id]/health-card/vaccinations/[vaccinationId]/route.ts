@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
-import { PrismaClient } from "@prisma/client"
+import prisma from "@/lib/prismadb"
 import { vaccinationSchema } from "@/lib/validations"
 
-const prisma = new PrismaClient()
+
 
 // PUT: Actualizar una vacuna
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string; vaccinationId: string }> }) {

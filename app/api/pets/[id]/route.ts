@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
-import { PrismaClient } from "@prisma/client"
-
-const prisma = new PrismaClient()
+import prisma from "@/lib/prismadb"
 
 // Actualizar la función GET para incluir healthCard con sus vacunas
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {

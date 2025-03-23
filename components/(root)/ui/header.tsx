@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { PawPrint,  LogOut, User } from "lucide-react"
+import { LogOut, User, Shield } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useUser } from "@/contexts/UserContext"
@@ -20,13 +20,14 @@ export function Header() {
   }, [])
 
   // Determinar la imagen del perfil y el nombre para mostrar
-  const profileImage = user?.profileImage || user?.image || null
-  const displayName = user?.username || user?.name || ""
+  const profileImage = user?.image || user?.image || null
+  const displayName = user?.name || user?.name || ""
   const userId = user?.id || ""
+  const userRole = user?.role || ""
 
   // Registrar información para depuración
   useEffect(() => {
-    if (!user) {
+    if (user) {
       console.log("Header: Usuario cargado")
     }
   }, [user, userId, displayName, profileImage])
@@ -45,7 +46,7 @@ export function Header() {
       <div className="container max-w-custom mx-auto px-4">
         <div className="flex h-14 items-center justify-between">
           <div className="flex items-center gap-2 font-bold">
-            <Link href={user ? "/feed" : "/"} className="flex">
+            <Link href={user ? "/" : "/feed"} className="flex">
               <Image src="/favicon.svg" alt="BarkAndMeow Logo" width={32} height={32} className="object-contain" />
               <span className="text-xl">BarkAndMeow</span>
             </Link>
@@ -61,36 +62,12 @@ export function Header() {
                       {item.label}
                     </Link>
                   ))}
+                {user && userRole === "ADMIN" && (
+                  <Link href="/admin" className="text-sm font-medium flex items-center gap-1">
+                    <span>Administración</span>
+                  </Link>
+                )}
               </nav>
-
-              {/* Mobile Navigation */}
-              {/* <div className="md:hidden">
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Menu className="h-6 w-6" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="right">
-                    <SheetHeader>
-                      <SheetTitle>Menu</SheetTitle>
-                    </SheetHeader>
-                    <nav className="flex flex-col space-y-4 mt-8">
-                      {user &&
-                        menuItems.map((item) => (
-                          <Link key={item.href} href={item.href} className="text-sm font-medium">
-                            {item.label}
-                          </Link>
-                        ))}
-                      {user && (
-                        <Button variant="ghost" onClick={() => signOut()}>
-                          Cerrar sesión
-                        </Button>
-                      )}
-                    </nav>
-                  </SheetContent>
-                </Sheet>
-              </div> */}
 
               <div className="flex items-center space-x-2">
                 <ThemeToggle />
