@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { Editor } from "@/components/admin/editor"
+import { Editor } from "@/components/(admin)/editor"
 import { toast } from "sonner"
 import { ArrowLeft, Save, Eye, Trash } from "lucide-react"
 

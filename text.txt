@@ -1,10 +1,10 @@
-Thought for 2 seconds## Explicación del script build-docker.sh
+Thought for 2 seconds## Explicación del script build-ts-docker.sh
 
-El archivo `build-docker.sh` es un script de shell (bash) que he creado para simplificar y automatizar el proceso de construcción de tu imagen Docker. Vamos a explicar para qué sirve y cómo usarlo:
+El archivo `build-ts-docker.sh` es un script de shell (bash) que he creado para simplificar y automatizar el proceso de construcción de tu imagen Docker. Vamos a explicar para qué sirve y cómo usarlo:
 
 ### ¿Para qué sirve?
 
-El script `build-docker.sh` tiene varios propósitos:
+El script `build-ts-docker.sh` tiene varios propósitos:
 
 1. **Automatización**: Ejecuta el comando de construcción de Docker con los parámetros correctos.
 2. **Feedback mejorado**: Proporciona mensajes claros sobre el éxito o fracaso del proceso.
@@ -37,14 +37,14 @@ Para usar el script, sigue estos pasos:
 1. **Dar permisos de ejecución** (solo necesitas hacerlo una vez):
 
 ```shellscript
-chmod +x build-docker.sh
+chmod +x build-ts-docker.sh
 ```
 
 
 2. **Ejecutar el script**:
 
 ```shellscript
-./build-docker.sh
+./build-ts-docker.sh
 ```
 
 
