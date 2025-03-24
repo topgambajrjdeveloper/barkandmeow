@@ -2,7 +2,8 @@ import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import prisma from "@/lib/prismadb"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+// Modificar la función GET para hacer await de params
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth()
 
@@ -10,10 +11,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    const userId = params.id
+    // Hacer await de params antes de acceder a sus propiedades
+    const { id } = await params
 
     // Si el ID es "me", usar el ID del usuario autenticado
-    const targetUserId = userId === "me" ? session.user.id : userId
+    const targetUserId = id === "me" ? session.user.id : id
 
     // Obtener publicaciones del usuario con información relacionada
     const posts = await prisma.post.findMany({
