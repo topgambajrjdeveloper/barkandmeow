@@ -1,13 +1,25 @@
 // Interfaces para mascotas
 export interface Pet {
   id: string
-  age?: number | null
-  image?: string | null
   name: string
-  userId: string
   type: string
   breed: string | null
-  passport: {
+  age: number | null
+  image: string | null
+  description: string | null
+  createdAt: string
+  userId: string
+  user: {
+    id: string
+    username: string
+    email: string
+    profileImage: string | null
+  }
+  _count: {
+    followers: number
+  }
+  status?: "active" | "hidden" | "reported"
+  passport?: {
     passportNumber: string
     issuedDate: string
     expiryDate?: string | null
@@ -30,6 +42,30 @@ export interface Pet {
     clinicCountry: string
     clinicPhone: string
     clinicEmail: string
+  } | null
+  healthCard?: {
+    id: string
+    vaccinations: {
+      id: string
+      name: string
+      date: string
+      nextDueDate?: string | null
+      veterinarian?: string | null
+    }[]
+    medications: {
+      id: string
+      name: string
+      dosage: string
+      frequency: string
+      startDate: string
+      endDate?: string | null
+    }[]
+    medicalHistory: {
+      id: string
+      date: string
+      description: string
+      veterinarian?: string | null
+    }[]
   } | null
 }
 

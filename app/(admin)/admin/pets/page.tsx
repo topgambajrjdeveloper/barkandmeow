@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import type React from "react"
@@ -19,20 +20,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, MoreHorizontal, Search, PlusCircle, Filter } from "lucide-react"
 import { toast } from "sonner"
+import { Pet } from "@/types"
 
-interface Pet {
-  id: string
-  name: string
-  type: string
-  breed: string | null
-  age: number | null
-  image: string | null
-  status: "active" | "hidden" | "reported"
-  ownerId: string
-  ownerName: string
-  createdAt: string
-  followersCount: number
-}
+
 
 export default function PetsPage() {
   const router = useRouter()
@@ -42,85 +32,37 @@ export default function PetsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
+  // Actualizar el useEffect para que haga una llamada real a la API
   useEffect(() => {
     const fetchPets = async () => {
       setIsLoading(true)
       try {
-        // En una implementación real, esto sería una llamada a tu API
-        // const response = await fetch(`/api/admin/pets?page=${currentPage}&search=${searchQuery}`);
-        // const data = await response.json();
+        // Llamada real a la API
+        const response = await fetch(`/api/admin/pets?page=${currentPage}&search=${searchQuery}`)
 
-        // Datos de ejemplo
-        const mockPets: Pet[] = [
-          {
-            id: "1",
-            name: "Luna",
-            type: "Perro",
-            breed: "Golden Retriever",
-            age: 3,
-            image: null,
-            status: "active",
-            ownerId: "1",
-            ownerName: "maria_garcia",
-            createdAt: "2023-05-20T10:30:00Z",
-            followersCount: 45,
-          },
-          {
-            id: "2",
-            name: "Milo",
-            type: "Gato",
-            breed: "Siamés",
-            age: 2,
-            image: null,
-            status: "active",
-            ownerId: "1",
-            ownerName: "maria_garcia",
-            createdAt: "2023-06-15T14:45:00Z",
-            followersCount: 32,
-          },
-          {
-            id: "3",
-            name: "Rocky",
-            type: "Perro",
-            breed: "Bulldog",
-            age: 4,
-            image: null,
-            status: "active",
-            ownerId: "2",
-            ownerName: "carlos_lopez",
-            createdAt: "2023-07-10T09:15:00Z",
-            followersCount: 28,
-          },
-          {
-            id: "4",
-            name: "Bella",
-            type: "Gato",
-            breed: "Persa",
-            age: 1,
-            image: null,
-            status: "hidden",
-            ownerId: "4",
-            ownerName: "laura_martinez",
-            createdAt: "2023-08-05T16:20:00Z",
-            followersCount: 15,
-          },
-          {
-            id: "5",
-            name: "Max",
-            type: "Perro",
-            breed: "Pastor Alemán",
-            age: 5,
-            image: null,
-            status: "reported",
-            ownerId: "4",
-            ownerName: "laura_martinez",
-            createdAt: "2023-09-01T11:10:00Z",
-            followersCount: 20,
-          },
-        ]
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`)
+        }
 
-        setPets(mockPets)
-        setTotalPages(3) // Simulando 3 páginas en total
+        const data = await response.json()
+
+        // Mapear los datos para adaptarlos a nuestra interfaz
+        const formattedPets = data.pets.map((pet: any) => ({
+          id: pet.id,
+          name: pet.name,
+          type: pet.type,
+          breed: pet.breed || null,
+          age: pet.age,
+          image: pet.image,
+          status: "active", // Por defecto, podemos ajustar esto según tus necesidades
+          userId: pet.userId,
+          ownerName: pet.user?.username || "Usuario desconocido",
+          createdAt: pet.createdAt,
+          followersCount: pet._count?.followers || 0,
+        }))
+
+        setPets(formattedPets)
+        setTotalPages(data.pagination.totalPages || 1)
         setIsLoading(false)
       } catch (error) {
         console.error("Error fetching pets:", error)
@@ -137,14 +79,19 @@ export default function PetsPage() {
     setCurrentPage(1) // Resetear a la primera página al buscar
   }
 
+  // Actualizar la función handleStatusChange para que llame a la API
   const handleStatusChange = async (petId: string, newStatus: "active" | "hidden" | "reported") => {
     try {
-      // En una implementación real, esto sería una llamada a tu API
-      // await fetch(`/api/admin/pets/${petId}/status`, {
-      //   method: "PATCH",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ status: newStatus })
-      // });
+      // Llamada real a la API
+      const response = await fetch(`/api/admin/pets/${petId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`)
+      }
 
       // Actualizar estado local
       setPets(pets.map((pet) => (pet.id === petId ? { ...pet, status: newStatus } : pet)))
@@ -156,16 +103,21 @@ export default function PetsPage() {
     }
   }
 
+  // Actualizar la función handleDeletePet para que llame a la API
   const handleDeletePet = async (petId: string) => {
     if (!confirm("¿Estás seguro de que quieres eliminar esta mascota? Esta acción no se puede deshacer.")) {
       return
     }
 
     try {
-      // En una implementación real, esto sería una llamada a tu API
-      // await fetch(`/api/admin/pets/${petId}`, {
-      //   method: "DELETE"
-      // });
+      // Llamada real a la API
+      const response = await fetch(`/api/admin/pets/${petId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`)
+      }
 
       // Actualizar estado local
       setPets(pets.filter((pet) => pet.id !== petId))
@@ -283,7 +235,7 @@ export default function PetsPage() {
                     <Button
                       variant="link"
                       className="p-0 h-auto"
-                      onClick={() => router.push(`/admin/users/${pet.ownerId}`)}
+                      onClick={() => router.push(`/admin/users/${pet.userId}`)}
                     >
                       {pet.ownerName}
                     </Button>

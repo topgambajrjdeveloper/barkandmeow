@@ -9,6 +9,7 @@ import { Header } from "@/components/(root)/ui/header";
 import { MobileNavigation } from "@/components/(root)/ui/MobileNavigation";
 import Footer from "@/components/(root)/ui/footer";
 import { CookieConsent } from "@/components/cookie-consent";
+import { PWAInstallPrompt } from "@/components/(root)/pwa-install-prompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +28,14 @@ export const metadata: Metadata = {
   },
   description:
     "Conecta con otros dueños de mascotas, comparte momentos especiales y encuentra servicios para tus compañeros peludos.",
-  keywords: ["mascotas", "perros", "gatos", "red social", "cuidado de mascotas", "veterinarios"],
+  keywords: [
+    "mascotas",
+    "perros",
+    "gatos",
+    "red social",
+    "cuidado de mascotas",
+    "veterinarios",
+  ],
   authors: [{ name: "BarkAndMeow Team" }],
   creator: "BarkAndMeow",
   publisher: "BarkAndMeow",
@@ -78,13 +86,14 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      // Usar SVG como favicon principal
       { url: "/favicon.svg", type: "image/svg+xml" },
-      // Mantener PNG como fallback para navegadores que no soportan SVG
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
     other: [
       {
         rel: "mask-icon",
@@ -110,19 +119,26 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-       <SessionProvider>
+        <SessionProvider>
           <UserProvider>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
               <div className="flex min-h-screen flex-col">
                 <Header />
                 <main className="flex-1">
-                  <div className="container max-w-custom mx-auto px-4 py-8">{children}
-                  <CookieConsent />
+                  <div className="container max-w-custom mx-auto px-4 py-8">
+                    {children}
+                    <CookieConsent />
                   </div>
                 </main>
                 <MobileNavigation />
                 <Footer />
               </div>
+              <PWAInstallPrompt />
             </ThemeProvider>
           </UserProvider>
         </SessionProvider>

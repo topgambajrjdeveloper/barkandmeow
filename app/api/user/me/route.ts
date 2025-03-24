@@ -13,7 +13,6 @@ export async function GET() {
     }
 
     const userId = session.user.id
-    console.log("API: Current user ID:", userId)
 
     // Ahora incluimos el campo bio en la consulta
     const user = await prisma.user.findUnique({

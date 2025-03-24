@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const session = await auth()
 
     // Verificar si el usuario está autenticado y es administrador
-    if (!session || session?.user?.role !== "ADMIN") {
+    if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       }
     }
 
-    // Obtener mascotas con paginación
+    // Actualizar la consulta para incluir información del pasaporte
     const pets = await prisma.pet.findMany({
       where,
       skip,
@@ -50,6 +50,12 @@ export async function GET(request: Request) {
         description: true,
         createdAt: true,
         userId: true,
+        passport: {
+          select: {
+            passportNumber: true,
+            issuedDate: true,
+          },
+        },
         user: {
           select: {
             username: true,
@@ -86,7 +92,7 @@ export async function POST(request: Request) {
     const session = await auth()
 
     // Verificar si el usuario está autenticado y es administrador
-    if (!session || session?.user?.role !== "ADMIN") {
+    if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
