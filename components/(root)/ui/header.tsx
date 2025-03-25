@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, User, Shield } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useUser } from "@/contexts/UserContext";
@@ -46,7 +46,7 @@ export function Header() {
       <div className="container max-w-custom mx-auto px-4">
         <div className="flex h-14 items-center justify-between">
           <div className="flex items-center gap-2 font-bold">
-            <Link href={user ? "/" : "/feed"} className="flex">
+            <Link href="/" className="flex">
               <Image
                 src="/favicon.svg"
                 alt="BarkAndMeow Logo"

@@ -12,7 +12,7 @@ export default function RegisterPage() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Registro en PetSocial</CardTitle>
+        <CardTitle>Registro en BarkAndMeow</CardTitle>
         <CardDescription>Crea una cuenta para ti y tu mascota</CardDescription>
       </CardHeader>
       <CardContent>

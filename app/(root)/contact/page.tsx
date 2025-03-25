@@ -11,8 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { PawPrint, Mail, Phone, MapPin } from "lucide-react"
+import { PawPrint, Mail } from "lucide-react"
 import { contactFormSchema, type ContactFormValues } from "@/lib/validations"
+import Link from "next/link"
 
 export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -64,16 +65,18 @@ export default function ContactPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
+              <div className="text-muted-foreground">
                 {/* <a href="mailto:info@barkandmeow.app" className="hover:text-primary">
                   info@barkandmeow.app
                 </a> */}
-                <li>
-              <a href="https://wa.me/34649599475" className="text-primary hover:underline">
-                Contactar por WhatsApp
-              </a>
-              </li>
-              </p>
+                <ul className="list-none">
+                  <li>
+                    <Link href="https://wa.me/34649599475" className=" hover:underline">
+                      Contactar por WhatsApp
+                    </Link>
+                  </li>
+                </ul>
+              </div>
             </CardContent>
           </Card>
 
