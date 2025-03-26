@@ -162,18 +162,36 @@ export const medicalRecordSchema = z.object({
 
 // Esquema para el formulario de contacto
 export const contactFormSchema = z.object({
-  name: z.string().min(2, {
-    message: "El nombre debe tener al menos 2 caracteres.",
+  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+  email: z.string().email("Por favor, introduce un email válido"),
+  subject: z.string().min(5, "El asunto debe tener al menos 5 caracteres"),
+  message: z.string().min(10, "El mensaje debe tener al menos 10 caracteres"),
+})
+
+export const teamMemberSchema = z.object({
+  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+  role: z.string().min(2, "El rol debe tener al menos 2 caracteres"),
+  bio: z.string().min(10, "La biografía debe tener al menos 10 caracteres"),
+  image: z.string().nullable().optional(),
+  order: z.number().int().nonnegative(),
+  isFounder: z.boolean().default(false),
+  twitter: z.string().url("Debe ser una URL válida").nullable().optional(),
+  instagram: z.string().url("Debe ser una URL válida").nullable().optional(),
+  facebook: z.string().url("Debe ser una URL válida").nullable().optional(),
+  linkedin: z.string().url("Debe ser una URL válida").nullable().optional(),
+  github: z.string().url("Debe ser una URL válida").nullable().optional(),
+})
+
+// Esquema para donaciones
+export const donationSchema = z.object({
+  amount: z.number().positive("El monto debe ser positivo"),
+  currency: z.string().default("EUR"),
+  type: z.enum(["monthly", "onetime"], {
+    errorMap: () => ({ message: "El tipo debe ser 'monthly' o 'onetime'" }),
   }),
-  email: z.string().email({
-    message: "Por favor, introduce un correo electrónico válido.",
-  }),
-  subject: z.string().min(5, {
-    message: "El asunto debe tener al menos 5 caracteres.",
-  }),
-  message: z.string().min(10, {
-    message: "El mensaje debe tener al menos 10 caracteres.",
-  }),
+  email: z.string().email("Email inválido").optional(),
+  name: z.string().optional(),
+  message: z.string().max(500, "El mensaje no puede exceder los 500 caracteres").optional(),
 })
 
 export type RegisterInput = z.infer<typeof registerSchema>
@@ -188,6 +206,8 @@ export type VaccinationFormValues = z.infer<typeof vaccinationSchema>
 export type MedicationFormValues = z.infer<typeof medicationSchema>
 export type MedicalRecordFormValues = z.infer<typeof medicalRecordSchema>
 export type ContactFormValues = z.infer<typeof contactFormSchema>
+export type TeamMemberFormValues = z.infer<typeof teamMemberSchema>
+export type DonationFormValues = z.infer<typeof donationSchema>
 
 // Añadimos el alias de tipo PassportData
 export type PassportData = PassportFormValues

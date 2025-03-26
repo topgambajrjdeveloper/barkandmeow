@@ -3,14 +3,14 @@ import nodemailer from "nodemailer"
 export let transporter: nodemailer.Transporter
 
 if (process.env.NODE_ENV === "production") {
-  // Configuración para producción
+  // Configuración para producción usando Brevo
   transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: process.env.SMTP_SECURE === "true",
+    host: process.env.BREVO_SMTP_HOST || "smtp-relay.brevo.com", // Usuario de Brevo
+    port: 587, // Puerto de Brevo
+    secure: false, // TLS requiere que sea false para el puerto 587
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: process.env.BREVO_SMTP_USER || "88c5f3002@smtp-brevo.com", // Usuario de Brevo
+      pass: process.env.BREVO_SMTP_PASS || "ZTJL7BVYd2qb8K4P", // Contraseña de Brevo
     },
   })
 } else {
@@ -77,7 +77,6 @@ export async function sendPasswordResetEmail(to: string, token: string) {
   })
 }
 
-
 export async function sendVaccinationReminderEmail(
   to: string,
   username: string,
@@ -113,4 +112,32 @@ export async function sendVaccinationReminderEmail(
   })
 }
 
+// Función para enviar emails de contacto
+export async function sendContactEmail(name: string, email: string, subject: string, message: string) {
+  try {
+    await transporter.sendMail({
+      from: `"${process.env.NEXT_NAME_WEB}" <no-reply@barkandmeow.app>`,
+      to: process.env.CONTACT_EMAIL || "info@barkandmeow.app", // Email donde recibirás los mensajes de contacto
+      replyTo: email, // Para que puedas responder directamente al remitente
+      subject: `Formulario de contacto: ${subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Nuevo mensaje de contacto</h2>
+          <p><strong>Nombre:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Asunto:</strong> ${subject}</p>
+          <p><strong>Mensaje:</strong></p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px;">
+            ${message.replace(/\n/g, "<br>")}
+          </div>
+        </div>
+      `,
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error al enviar email de contacto:", error)
+    return { success: false, error }
+  }
+}
 

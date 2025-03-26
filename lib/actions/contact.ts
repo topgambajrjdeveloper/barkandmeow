@@ -1,52 +1,36 @@
 "use server"
 
-import { transporter } from "@/lib/email"
-import type { ContactFormValues } from "@/lib/validations"
+import { z } from "zod"
+import { sendContactEmail } from "@/lib/email"
+import { contactFormSchema, type ContactFormValues } from "@/lib/validations"
 
-export async function sendContactForm(data: ContactFormValues) {
+export async function sendContactForm(formData: ContactFormValues) {
   try {
-    // Enviar correo al administrador
-    await transporter.sendMail({
-      from: `"Formulario de Contacto" <${data.email}>`,
-      to: process.env.EMAIL_FROM || "no-reply@barkandmeow.app", // Configura esta variable de entorno
-      subject: `Nuevo mensaje de contacto: ${data.subject}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Nuevo mensaje de contacto</h2>
-          <p><strong>Nombre:</strong> ${data.name}</p>
-          <p><strong>Email:</strong> ${data.email}</p>
-          <p><strong>Asunto:</strong> ${data.subject}</p>
-          <p><strong>Mensaje:</strong></p>
-          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px;">
-            ${data.message.replace(/\n/g, "<br>")}
-          </div>
-          <p style="color: #666; font-size: 12px; margin-top: 20px;">
-            Este mensaje fue enviado desde el formulario de contacto de ${process.env.NEXT_NAME_WEB}.
-          </p>
-        </div>
-      `,
-    })
+    // Validar los datos del formulario
+    const validatedData = contactFormSchema.parse(formData)
 
-    // Enviar confirmación al usuario
-    await transporter.sendMail({
-      from: `"${process.env.NEXT_NAME_WEB}" <no-reply@barkandmeow.app>`,
-      to: data.email,
-      subject: "Hemos recibido tu mensaje",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Gracias por contactarnos</h2>
-          <p>Hola ${data.name},</p>
-          <p>Hemos recibido tu mensaje con el asunto "${data.subject}".</p>
-          <p>Nuestro equipo revisará tu consulta y te responderemos lo antes posible.</p>
-          <p>Saludos,<br>El equipo de ${process.env.NEXT_NAME_WEB}</p>
-        </div>
-      `,
-    })
+    // Enviar el email
+    const result = await sendContactEmail(
+      validatedData.name,
+      validatedData.email,
+      validatedData.subject,
+      validatedData.message,
+    )
+
+    if (!result.success) {
+      throw new Error("Error al enviar el email")
+    }
 
     return { success: true }
   } catch (error) {
-    console.error("Error sending contact form emails:", error)
-    throw new Error("Failed to send contact form")
+    console.error("Error en sendContactForm:", error)
+
+    if (error instanceof z.ZodError) {
+      // Error de validación
+      return { success: false, error: "Datos de formulario inválidos" }
+    }
+
+    return { success: false, error: "Error al procesar la solicitud" }
   }
 }
 

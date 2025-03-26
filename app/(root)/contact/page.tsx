@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { PawPrint, Mail } from "lucide-react"
+import { PawPrint, Mail, Rss } from "lucide-react"
 import { contactFormSchema, type ContactFormValues } from "@/lib/validations"
 import Link from "next/link"
 
@@ -60,8 +60,8 @@ export default function ContactPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5 text-primary" />
-                Correo Electrónico
+                <Rss className="h-5 w-5 text-primary" />
+                Otras formas de contacto
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -75,6 +75,12 @@ export default function ContactPage() {
                       Contactar por WhatsApp
                     </Link>
                   </li>
+                  <li>
+              Telegram:{" "}
+              <a href="https://t.me/BarkAndMeowApp" className="text-primary hover:underline">
+                @BarkAndMeowApp
+              </a>
+            </li>
                 </ul>
               </div>
             </CardContent>

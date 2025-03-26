@@ -55,6 +55,11 @@ export function AdminSidebar() {
       icon: <Users className="mr-2 h-4 w-4" />,
     },
     {
+      href: "/admin/team",
+      title: "Equipo",
+      icon: <Users className="mr-2 h-4 w-4" />,
+    },
+    {
       href: "/admin/pets",
       title: "Mascotas",
       icon: <PawPrint className="mr-2 h-4 w-4" />,

@@ -184,3 +184,55 @@ export interface EditProfileDialogProps {
   }
 }
 
+// Interfaces para el equipo y colaboradores
+export interface TeamMember {
+  id: string
+  name: string
+  role: string
+  bio: string
+  image: string | null
+  order: number
+  isFounder: boolean
+  twitter?: string | null
+  instagram?: string | null
+  facebook?: string | null
+  linkedin?: string | null
+  github?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SocialMedia {
+  twitter?: string
+  instagram?: string
+  facebook?: string
+  linkedin?: string
+  github?: string
+}
+
+export interface TeamMemberFormData {
+  name: string
+  role: string
+  bio: string
+  image: string
+  order: number
+  isFounder: boolean
+  twitter?: string
+  instagram?: string
+  facebook?: string
+  linkedin?: string
+  github?: string
+}
+
+export interface DonationData {
+  id: string
+  amount: number
+  currency: string
+  type: "monthly" | "onetime"
+  status: "pending" | "completed" | "failed"
+  email?: string
+  name?: string
+  message?: string
+  createdAt: string
+  userId?: string
+}
