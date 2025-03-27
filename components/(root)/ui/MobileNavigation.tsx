@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, PlusSquare,LayoutDashboard } from "lucide-react";
+import { Home, Compass, PlusSquare,LayoutDashboard, MessageSquare } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 
 export function MobileNavigation() {
@@ -21,7 +21,7 @@ export function MobileNavigation() {
             pathname === "/feed" ? "text-primary" : "text-muted-foreground"
           }`}
         >
-          <Home size={24} />
+          <MessageSquare size={24} />
           <span className="text-xs">Feed</span>
         </Link>
         <Link
