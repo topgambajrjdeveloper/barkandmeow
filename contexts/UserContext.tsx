@@ -11,14 +11,21 @@ export type User = {
   name?: string | null
   email?: string | null
   image?: string | null
-  role?: string | null // Añadimos el campo role para identificar administradores
-  // Add other user properties here as needed
+  role?: string | null
+  username?: string | null
+  postsCount?: number
+  followersCount?: number
+  followingCount?: number
+  followers?: any[]
+  following?: any[]
+  posts?: any[]
 }
 
 // Define the UserContext type
 type UserContextType = {
   user: User | null
   loading: boolean
+  setUser: (user: User | null) => void
   refreshUser: () => Promise<void>
 }
 
@@ -26,6 +33,7 @@ type UserContextType = {
 const UserContext = createContext<UserContextType>({
   user: null,
   loading: false,
+  setUser: () => {},
   refreshUser: async () => {},
 })
 

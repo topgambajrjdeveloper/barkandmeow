@@ -33,12 +33,13 @@ export function MobileDrawer() {
   const displayName = user?.name || ""
   const userId = user?.id || ""
 
-  // Datos de ejemplo para estadísticas (reemplazar con datos reales)
-  const stats = {
-    posts: user?.posts?.length || 0,
-    following: user?.following?.length || 0,
-    followers: user?.followers?.length || 0,
-  }
+  // Usar un identificador de usuario basado en el ID si no hay username
+  const username = userId ? userId.substring(0, 8) : ""
+
+  // Usar valores reales cuando estén disponibles, o valores predeterminados
+  const postsCount = user?.postsCount || (Array.isArray(user?.posts) ? user.posts.length : 0)
+  const followersCount = user?.followersCount || (Array.isArray(user?.followers) ? user.followers.length : 0)
+  const followingCount = user?.followingCount || (Array.isArray(user?.following) ? user.following.length : 0)
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -66,30 +67,31 @@ export function MobileDrawer() {
         <div className="flex flex-col h-full">
           {user ? (
             <div className="p-6 border-b">
-              <div className="flex items-center space-x-4">
-                <Avatar className="h-16 w-16">
+              {/* Perfil de usuario con imagen más grande y nombre debajo */}
+              <div className="flex flex-col items-center text-center">
+                <Avatar className="h-24 w-24 mb-3">
                   <AvatarImage src={profileImage || "/placeholder-user.jpg"} alt={displayName || "Usuario"} />
                   <AvatarFallback>
-                    {displayName ? displayName[0].toUpperCase() : <User className="h-6 w-6" />}
+                    {displayName ? displayName[0].toUpperCase() : <User className="h-10 w-10" />}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h2 className="text-xl font-bold">{displayName}</h2>
-                  <p className="text-sm text-muted-foreground">@{user.username || userId.substring(0, 8)}</p>
+                  <p className="text-sm text-muted-foreground">@{username}</p>
                 </div>
               </div>
 
-              <div className="flex justify-between mt-4">
+              <div className="flex justify-between mt-6">
                 <div className="text-center">
-                  <p className="font-bold">{stats.posts}</p>
+                  <p className="font-bold">{postsCount}</p>
                   <p className="text-xs text-muted-foreground">Publicaciones</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-bold">{stats.followers}</p>
+                  <p className="font-bold">{followersCount}</p>
                   <p className="text-xs text-muted-foreground">Seguidores</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-bold">{stats.following}</p>
+                  <p className="font-bold">{followingCount}</p>
                   <p className="text-xs text-muted-foreground">Siguiendo</p>
                 </div>
               </div>
@@ -200,7 +202,7 @@ export function MobileDrawer() {
                   variant={pathname === "/cookies" ? "secondary" : "ghost"}
                   className="w-full justify-start"
                 >
-                  <Link href="/politica-cookies">
+                  <Link href="/cookies">
                     <Cookie className="mr-2 h-4 w-4" />
                     Política de Cookies
                   </Link>
