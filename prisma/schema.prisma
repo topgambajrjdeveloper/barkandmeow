@@ -23,7 +23,7 @@ model User {
   id                   String             @id @default(cuid())
   username             String             @unique
   email                String             @unique
-  bio                  String? 
+  bio                  String?
   role                 UserRole
   password             String
   profileImage         String?
@@ -52,6 +52,12 @@ model User {
   pushSubscriptions    PushSubscription[]
   taggedInPosts        TaggedUser[]
   pages                Page[]
+  patreonMembership    PatreonMembership?
+  isPremium            Boolean            @default(false)
+  premiumSince         DateTime?
+  premiumUntil         DateTime?
+  donationIntents      DonationIntent[]
+  badges               UserBadge[]
 }
 
 model Pet {
@@ -300,14 +306,57 @@ model TeamMember {
   updatedAt DateTime @updatedAt
 }
 
-model Donation {
- id            String    @id @default(cuid())
-  paypalOrderId String    @unique
-  paypalPayerId String?
-  amount        Float
-  email         String?
-  name          String?
-  status        String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+model PatreonMembership {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patreonId      String // ID del miembro en Patreon
+  status         String // active_patron, declined_patron, former_patron
+  tierName       String? // Nombre del nivel de membresía
+  amountCents    Int // Cantidad en centavos
+  lastChargeDate DateTime? // Fecha del último cargo
+  createdAt      DateTime  @default(now())
+  lastUpdated    DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }
+
+model DonationIntent {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Int
+  source      String // "patreon", "paypal", etc.
+  status      String // "pending", "completed", "expired", "cancelled"
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime?
+  completedAt DateTime?
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Badge {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  userBadges  UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId   String
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  awardedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([badgeId])
+}
+
+

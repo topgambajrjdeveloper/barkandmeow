@@ -5,6 +5,11 @@ declare module "next-auth" {
     user: {
       id: string
       role: string
+      patreon?: {
+        status: string
+        tier: string | null
+        isActive: boolean
+      }
     } & DefaultSession["user"]
   }
 

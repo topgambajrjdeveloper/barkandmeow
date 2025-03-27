@@ -4,22 +4,7 @@
 import type React from "react"
 import { createContext, useState, useEffect, useContext, useCallback } from "react"
 import { useSession } from "next-auth/react"
-
-// Define the User type
-export type User = {
-  id: string
-  name?: string | null
-  email?: string | null
-  image?: string | null
-  role?: string | null
-  username?: string | null
-  postsCount?: number
-  followersCount?: number
-  followingCount?: number
-  followers?: any[]
-  following?: any[]
-  posts?: any[]
-}
+import type { User } from "@/types"
 
 // Define the UserContext type
 type UserContextType = {
@@ -27,6 +12,8 @@ type UserContextType = {
   loading: boolean
   setUser: (user: User | null) => void
   refreshUser: () => Promise<void>
+  isPremium: boolean
+  hasBadge: (badgeId: string) => boolean
 }
 
 // Create the UserContext
@@ -35,6 +22,8 @@ const UserContext = createContext<UserContextType>({
   loading: false,
   setUser: () => {},
   refreshUser: async () => {},
+  isPremium: false,
+  hasBadge: () => false,
 })
 
 // Create the UserProvider component
@@ -99,7 +88,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (response.ok) {
         const userData = await response.json()
-        console.log("UserContext: User data received successfully", userData)
+        console.log("UserContext: Raw user data received:", userData)
+        console.log("UserContext: User _count data:", userData._count)
+
         // Asegurarse de que el ID del usuario esté presente y sea correcto
         if (userData && !userData.id && session?.user?.id) {
           userData.id = session.user.id
@@ -112,7 +103,20 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log("UserContext: Added missing user role from session", userData)
         }
 
-        setUserState(userData)
+        if (userData) {
+          // Asegurarse de que las propiedades de conteo estén siempre disponibles
+          userData.postsCount = userData.postsCount || userData._count?.posts || 0
+          userData.followersCount = userData.followersCount || userData._count?.followers || 0
+          userData.followingCount = userData.followingCount || userData._count?.following || 0
+
+          console.log("UserContext: Processed user data with counts:", {
+            postsCount: userData.postsCount,
+            followersCount: userData.followersCount,
+            followingCount: userData.followingCount,
+          })
+
+          setUserState(userData)
+        }
       } else {
         // Si la API falla, intentar usar los datos de la sesión directamente
         if (session?.user) {
@@ -122,6 +126,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: session.user.email,
             image: session.user.image,
             role: (session.user as any).role || null, // Obtener el rol de la sesión
+            isPremium: (session.user as any).isPremium || false, // Obtener estado premium de la sesión
           }
           console.log("UserContext: Using session data as fallback", sessionUser)
           setUserState(sessionUser)
@@ -169,6 +174,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: session.user.email,
           image: session.user.image,
           role: (session.user as any).role || null, // Obtener el rol de la sesión
+          isPremium: (session.user as any).isPremium || false, // Obtener estado premium de la sesión
         }
         console.log("UserContext: Using session data as fallback after error", sessionUser)
         setUserState(sessionUser)
@@ -226,7 +232,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log("UserContext: Added missing user role from session during refresh", userData)
         }
 
-        setUserState(userData)
+        if (userData) {
+          // Asegurarse de que las propiedades de conteo estén siempre disponibles
+          userData.postsCount = userData.postsCount || userData._count?.posts || 0
+          userData.followersCount = userData.followersCount || userData._count?.followers || 0
+          userData.followingCount = userData.followingCount || userData._count?.following || 0
+
+          setUserState(userData)
+        }
       } else {
         // Solo mostrar error en consola si no es un error 401 (no autenticado)
         if (response.status !== 401) {
@@ -244,7 +257,28 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  return <UserContext.Provider value={{ user, loading, refreshUser }}>{children}</UserContext.Provider>
+  // Función para verificar si el usuario es premium
+  const isPremium = user?.isPremium || false
+
+  // Función para verificar si el usuario tiene una insignia específica
+  const hasBadge = (badgeId: string) => {
+    if (!user?.badges || user.badges.length === 0) {
+      return false
+    }
+    return user.badges.some((badge) => badge.id === badgeId)
+  }
+
+  // Valor del contexto con las nuevas propiedades
+  const contextValue = {
+    user,
+    loading,
+    setUser: setUserState,
+    refreshUser,
+    isPremium,
+    hasBadge,
+  }
+
+  return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
 }
 
 // Create a custom hook to use the UserContext

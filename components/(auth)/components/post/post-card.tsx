@@ -2,33 +2,57 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Heart, MessageCircle, Share2, MoreHorizontal, Hash, Twitter, Facebook, Copy, Send } from "lucide-react"
+import { Heart, MessageCircle, Share2, MoreHorizontal, Hash } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import Image from "next/image"
 import { toast } from "sonner"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+
+// Modificar la función processContent para validar hashtags antes de crear enlaces
+export function processContent(content: string) {
+  if (!content) return ""
+
+  let processedContent = content
+
+  // Convertir hashtags en enlaces (solo hashtags válidos)
+  processedContent = processedContent.replace(/#(\w+)/g, (match, tag) => {
+    // Validar que el hashtag solo contiene caracteres permitidos
+    if (/^[a-zA-Z0-9_]+$/.test(tag)) {
+      return `<a href="/hashtag/${tag}" class="text-blue-500 hover:underline">#${tag}</a>`
+    }
+    // Si no es válido, devolver el hashtag original sin enlace
+    return match
+  })
+
+  // Convertir menciones de usuario en enlaces
+  processedContent = processedContent.replace(
+    /@(\w+)/g,
+    '<a href="/user/$1" class="text-blue-500 hover:underline">@$1</a>',
+  )
+
+  // Convertir menciones de mascotas en enlaces
+  processedContent = processedContent.replace(
+    /@pet:(\w+)/g,
+    '<a href="/pet/$1" class="text-blue-500 hover:underline">@pet:$1</a>',
+  )
+
+  return processedContent
+}
 
 interface PostCardProps {
   post: {
     id: string
     content: string
-    imageUrl: string | null
-    createdAt: string
+    imageUrl?: string | null
+    createdAt: string | Date
     user: {
       id: string
       username: string
@@ -60,25 +84,13 @@ export default function PostCard({ post, currentUserId, showActions = true, onDe
   const [liked, setLiked] = useState(post.hasLiked || false)
   const [likeCount, setLikeCount] = useState(post._count.likes)
   const [timeAgo, setTimeAgo] = useState<string>("")
-  const [shareUrl, setShareUrl] = useState<string>("")
-  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
-  const [canUseNativeShare, setCanUseNativeShare] = useState(false)
-  const sharePopoverRef = useRef<HTMLDivElement>(null)
-  const [isUsingNativeShare, setIsUsingNativeShare] = useState(false)
 
   const isOwner = currentUserId === post.user.id
 
-  // Efecto para manejar la hidratación y configuración inicial
+  // Efecto para manejar la hidratación y calcular el tiempo relativo
   useEffect(() => {
     setIsMounted(true)
-
-    // Configurar la URL para compartir
-    const origin = window.location.origin
-    setShareUrl(`${origin}/feed/${post.id}`)
-
-    // Detectar si podemos usar la API Web Share
-    setCanUseNativeShare(!!navigator.share)
 
     // Calcular el tiempo relativo
     setTimeAgo(
@@ -99,23 +111,7 @@ export default function PostCard({ post, currentUserId, showActions = true, onDe
     }, 60000)
 
     return () => clearInterval(interval)
-  }, [post.createdAt, post.id])
-
-  // Cerrar el menú de compartir al hacer clic fuera
-  useEffect(() => {
-    if (!isMounted) return
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (sharePopoverRef.current && !sharePopoverRef.current.contains(event.target as Node)) {
-        setIsShareMenuOpen(false)
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [isMounted])
+  }, [post.createdAt])
 
   const handleLike = useCallback(async () => {
     if (!currentUserId) {
@@ -165,108 +161,27 @@ export default function PostCard({ post, currentUserId, showActions = true, onDe
     }
   }, [isOwner, onDelete, post.id, router])
 
-  const handleShare = () => {
-    if (isMounted && canUseNativeShare) {
-      setIsUsingNativeShare(true)
-    } else {
-      setIsShareMenuOpen(true)
-    }
-  }
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      toast.success("Enlace copiado al portapapeles")
-      setIsShareMenuOpen(false)
-    } catch (error) {
-      toast.error("No se pudo copiar el enlace")
-    }
-  }
-
-  const shareOnTwitter = () => {
-    const text = post.content
-      ? `${post.content.substring(0, 100)}${post.content.length > 100 ? "..." : ""}`
-      : "Mira esta publicación"
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`
-    window.open(url, "_blank")
-    setIsShareMenuOpen(false)
-  }
-
-  const shareOnFacebook = () => {
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
-    window.open(url, "_blank")
-    setIsShareMenuOpen(false)
-  }
-
-  const shareOnWhatsApp = () => {
-    const text = post.content
-      ? `${post.content.substring(0, 100)}${post.content.length > 100 ? "..." : ""}`
-      : "Mira esta publicación"
-    const url = `https://wa.me/?text=${encodeURIComponent(`${text} ${shareUrl}`)}`
-    window.open(url, "_blank")
-    setIsShareMenuOpen(false)
-  }
-
-  const shareOnTelegram = () => {
-    const text = post.content
-      ? `${post.content.substring(0, 100)}${post.content.length > 100 ? "..." : ""}`
-      : "Mira esta publicación"
-    const url = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`
-    window.open(url, "_blank")
-    setIsShareMenuOpen(false)
-  }
-
-  // Usar la API Web Share si está disponible
-  const useNativeShare = useCallback(async () => {
-    if (!isMounted) return
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Publicación de ${post.user.username}`,
-          text: post.content || "Mira esta publicación",
-          url: shareUrl,
-        })
-        toast.success("Contenido compartido")
-      } catch (error) {
-        if (error.name !== "AbortError") {
-          toast.error("Error al compartir")
-        }
-      }
-    } else {
-      setIsShareMenuOpen(true)
-    }
-  }, [isMounted, shareUrl, post.user.username, post.content])
-
-  useEffect(() => {
-    if (isUsingNativeShare) {
-      useNativeShare()
-      setIsUsingNativeShare(false)
-    }
-  }, [isUsingNativeShare, useNativeShare])
-
   return (
     <Card className="border-background/1 border-4">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Link href={`/profile/${post.user.id}`}>
+            <Link href={`/user/${post.user.username}`}>
               <Avatar>
                 <AvatarImage src={post.user.profileImage || "/placeholder-user.jpg"} alt={post.user.username} />
                 <AvatarFallback>{post.user.username[0]}</AvatarFallback>
               </Avatar>
             </Link>
             <div>
-              <Link href={`/profile/${post.user.id}`} className="text-sm font-medium leading-none hover:underline">
+              <Link href={`/user/${post.user.username}`} className="text-sm font-medium leading-none hover:underline">
                 {post.user.username}
               </Link>
               <div className="flex items-center text-xs text-muted-foreground">
                 {post.pet && (
-                  <Link href={`/pets/${post.pet.id}`} className="hover:underline">
+                  <Link href={`/pet/${post.pet.id}`} className="hover:underline">
                     {post.pet.name} • {post.pet.type} •{" "}
                   </Link>
                 )}
-                {/* Mostrar un placeholder hasta que el tiempo se calcule en el cliente */}
                 <span>{timeAgo || "..."}</span>
               </div>
             </div>
@@ -290,13 +205,15 @@ export default function PostCard({ post, currentUserId, showActions = true, onDe
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {post.content && <p>{post.content}</p>}
+        {post.content && (
+          <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: processContent(post.content) }} />
+        )}
 
         {post.imageUrl && (
           <Link href={`/feed/${post.id}`}>
             <div className="relative max-h-[300px] overflow-hidden rounded-md">
               <Image
-              priority
+                priority
                 src={post.imageUrl || "/placeholder.svg"}
                 alt="Publicación"
                 width={600}
@@ -327,7 +244,7 @@ export default function PostCard({ post, currentUserId, showActions = true, onDe
             <span>Con: </span>
             {post.taggedUsers.map((tagged, index) => (
               <span key={tagged.user.id}>
-                <Link href={`/profile/${tagged.user.id}`} className="font-medium hover:underline">
+                <Link href={`/user/${tagged.user.username}`} className="font-medium hover:underline">
                   @{tagged.user.username}
                 </Link>
                 {index < post.taggedUsers!.length - 1 ? ", " : ""}
@@ -342,7 +259,7 @@ export default function PostCard({ post, currentUserId, showActions = true, onDe
             <span>Mascotas: </span>
             {post.taggedPets.map((tagged, index) => (
               <span key={tagged.pet.id}>
-                <Link href={`/pets/${tagged.pet.id}`} className="font-medium hover:underline">
+                <Link href={`/pet/${tagged.pet.id}`} className="font-medium hover:underline">
                   {tagged.pet.name}
                 </Link>
                 {index < post.taggedPets!.length - 1 ? ", " : ""}
@@ -373,82 +290,9 @@ export default function PostCard({ post, currentUserId, showActions = true, onDe
               </Button>
             </Link>
 
-            {/* Renderizar siempre el mismo componente para evitar errores de hidratación */}
-            <Popover open={isShareMenuOpen} onOpenChange={setIsShareMenuOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-1" onClick={handleShare}>
-                  <Share2 className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              {isMounted && (
-                <PopoverContent className="w-56" ref={sharePopoverRef}>
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm">Compartir publicación</h4>
-                    <div className="grid grid-cols-4 gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={shareOnTwitter}
-                        title="Twitter"
-                      >
-                        <Twitter className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={shareOnFacebook}
-                        title="Facebook"
-                      >
-                        <Facebook className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={shareOnWhatsApp}
-                        title="WhatsApp"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.2.301-.767.966-.94 1.164-.173.199-.347.223-.647.075-.3-.15-1.269-.467-2.416-1.483-.893-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.462.13-.61.136-.137.301-.354.451-.531.151-.177.2-.301.3-.502.099-.2.05-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.241-.579-.486-.5-.672-.51-.172-.008-.371-.01-.571-.01-.2 0-.522.074-.796.359-.273.285-1.045 1.02-1.045 2.475s1.07 2.865 1.219 3.075c.149.209 2.096 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.57-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-                          <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 100-16 8 8 0 000 16z" />
-                        </svg>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={shareOnTelegram}
-                        title="Telegram"
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <DropdownMenuSeparator />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start gap-2"
-                      onClick={copyToClipboard}
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span>Copiar enlace</span>
-                    </Button>
-                  </div>
-                </PopoverContent>
-              )}
-            </Popover>
+            <Button variant="ghost" size="sm" className="gap-1">
+              <Share2 className="h-4 w-4" />
+            </Button>
           </div>
         </CardFooter>
       )}

@@ -1,3 +1,12 @@
+// Interfaces para insignias
+export interface Badge {
+  id: string
+  name: string
+  description?: string | null
+  imageUrl?: string | null
+  awardedAt?: string
+}
+
 // Interfaces para mascotas
 export interface Pet {
   id: string
@@ -139,12 +148,41 @@ export interface Follower {
   profileImage: string | null
 }
 
+// Interfaz User para el contexto de usuario y componentes
+export interface User {
+  id: string
+  name?: string | null
+  email?: string | null
+  image?: string | null
+  profileImage?: string | null
+  username?: string | null
+  role?: string | null
+  bio?: string | null
+  isPremium?: boolean
+  premiumSince?: Date | null
+  premiumUntil?: Date | null
+  badges?: Badge[]
+  posts?: any[]
+  followers?: any[]
+  following?: any[]
+  postsCount?: number
+  followersCount?: number
+  followingCount?: number
+
+  // Añadir la propiedad _count que viene de Prisma
+  _count?: {
+    posts?: number
+    followers?: number
+    following?: number
+  }
+}
+
 export interface UserProfile {
   id: string
   username: string
   email: string
-  profileImage: string | null
-  bio?:string | null
+  profileImage?: string | null
+  bio?: string | null
   petName: string
   petType: string
   petImage: string | null
@@ -160,10 +198,15 @@ export interface UserProfile {
   isFollowedBy?: boolean
   followers: Follower[]
   following: Follower[]
+  isPremium?: boolean
+  premiumSince?: string | null
+  premiumUntil?: string | null
+  badges?: Badge[]
 }
 
 // Interfaces para componentes específicos
 export interface PostCardProps {
+  id: string
   content: string
   image: string
   likes: number
@@ -236,3 +279,4 @@ export interface DonationData {
   createdAt: string
   userId?: string
 }
+

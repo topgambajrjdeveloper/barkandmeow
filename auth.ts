@@ -1,11 +1,10 @@
 import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
-import { PrismaClient } from "@prisma/client"
 import Credentials from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
 import { loginSchema } from "./lib/validations"
+import prisma from "@/lib/prismadb"
 
-const prisma = new PrismaClient()
 
 export const {
   handlers: { GET, POST },

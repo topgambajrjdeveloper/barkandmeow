@@ -15,6 +15,7 @@ import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { generatePreviewContent } from "@/lib/content-processor"
 
 interface User {
   id: string
@@ -52,8 +53,15 @@ export default function CreatePost({ user, userPets, onPostCreated }: CreatePost
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [isSearching, setIsSearching] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isCreatePage = pathname === "/create"
+
+  // Efecto para mostrar/ocultar la vista previa
+  useEffect(() => {
+    // Mostrar vista previa si hay contenido o elementos etiquetados
+    setShowPreview(content.trim().length > 0 || hashtags.length > 0 || taggedUsers.length > 0 || taggedPets.length > 0)
+  }, [content, hashtags, taggedUsers, taggedPets])
 
   // Efecto para buscar usuarios/mascotas cuando se escribe en el campo de búsqueda
   useEffect(() => {
@@ -286,7 +294,7 @@ export default function CreatePost({ user, userPets, onPostCreated }: CreatePost
         <div className="flex items-center space-x-4">
           <Avatar>
             <AvatarImage src={user?.profileImage || "/placeholder-user.jpg"} alt={user?.username} />
-            <AvatarFallback>{user?.username[0]}</AvatarFallback>
+            <AvatarFallback>{user?.username?.[0] || "?"}</AvatarFallback>
           </Avatar>
           <div>
             <p className="text-sm font-medium leading-none">¿Qué está haciendo tu mascota hoy?</p>
@@ -300,6 +308,19 @@ export default function CreatePost({ user, userPets, onPostCreated }: CreatePost
           onChange={(e) => setContent(e.target.value)}
           className="min-h-[100px] resize-none"
         />
+
+        {/* Vista previa del contenido con hashtags y menciones clicables */}
+        {showPreview && (
+          <div className="mt-4 p-3 border rounded-md">
+            <h3 className="text-sm font-medium mb-2">Vista previa:</h3>
+            <div
+              className="whitespace-pre-wrap"
+              dangerouslySetInnerHTML={{
+                __html: generatePreviewContent(content, hashtags, taggedUsers, taggedPets),
+              }}
+            />
+          </div>
+        )}
 
         {imagePreview && (
           <div className="relative">

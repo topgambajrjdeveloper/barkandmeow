@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Search, Mail, FileText, Shield, Cookie, LogOut, User, Heart, MessageSquare } from "lucide-react"
+import { Home, Search, Mail, FileText, Shield, Cookie, LogOut, UserIcon, Heart, MessageSquare } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -11,10 +12,15 @@ import { signOut } from "next-auth/react"
 import { useUser } from "@/contexts/UserContext"
 
 export function MobileDrawer() {
-  const { user } = useUser()
+  const { user, refreshUser } = useUser()
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [stats, setStats] = useState({
+    postsCount: 0,
+    followersCount: 0,
+    followingCount: 0,
+  })
 
   // Asegurarse de que el componente solo se renderice en el cliente
   useEffect(() => {
@@ -26,20 +32,49 @@ export function MobileDrawer() {
     setIsOpen(false)
   }, [pathname])
 
+  // Modificar el efecto de fetchUserStats para que solo se ejecute cuando cambie el ID del usuario:
+  // Reemplazar el efecto existente con este:
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      if (!user?.id) return
+
+      try {
+        // Usar la misma API que usa el perfil para obtener los contadores
+        const response = await fetch(`/api/user/profile/${user.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          console.log("MobileDrawer: Fetched user stats:", {
+            postsCount: data.postsCount,
+            followersCount: data.followersCount,
+            followingCount: data.followingCount,
+          })
+
+          setStats({
+            postsCount: data.postsCount || 0,
+            followersCount: data.followersCount || 0,
+            followingCount: data.followingCount || 0,
+          })
+        }
+      } catch (error) {
+        console.error("Error fetching user stats:", error)
+      }
+    }
+
+    if (user?.id) {
+      fetchUserStats()
+    }
+  }, [user?.id]) // Solo depende del ID del usuario
+
+
   if (!mounted) return null
 
   // Determinar la imagen del perfil y el nombre para mostrar
-  const profileImage = user?.image || null
-  const displayName = user?.name || ""
+  const profileImage = user?.profileImage || user?.image || null
+  const displayName = user?.username || user?.name || ""
   const userId = user?.id || ""
 
-  // Usar un identificador de usuario basado en el ID si no hay username
-  const username = userId ? userId.substring(0, 8) : ""
-
-  // Usar valores reales cuando estén disponibles, o valores predeterminados
-  const postsCount = user?.postsCount || (Array.isArray(user?.posts) ? user.posts.length : 0)
-  const followersCount = user?.followersCount || (Array.isArray(user?.followers) ? user.followers.length : 0)
-  const followingCount = user?.followingCount || (Array.isArray(user?.following) ? user.following.length : 0)
+  // Usar un identificador de usuario basado en el nombre o ID
+  const username = user?.username || (userId ? userId.substring(0, 8) : "")
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -72,26 +107,45 @@ export function MobileDrawer() {
                 <Avatar className="h-24 w-24 mb-3">
                   <AvatarImage src={profileImage || "/placeholder-user.jpg"} alt={displayName || "Usuario"} />
                   <AvatarFallback>
-                    {displayName ? displayName[0].toUpperCase() : <User className="h-10 w-10" />}
+                    {displayName ? displayName[0].toUpperCase() : <UserIcon className="h-10 w-10" />}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="text-xl font-bold">{displayName}</h2>
+                  <div className="flex items-center justify-center gap-2">
+                    <h2 className="text-xl font-bold">{displayName}</h2>
+                    {user?.isPremium && (
+                      <span className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 text-xs px-1.5 py-0.5 rounded-full flex items-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-3 w-3 mr-0.5"
+                        >
+                          <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7-6.3-4.6L5.7 21l2.3-7-6-4.6h7.6z" />
+                        </svg>
+                        <span>Premium</span>
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">@{username}</p>
                 </div>
               </div>
 
               <div className="flex justify-between mt-6">
                 <div className="text-center">
-                  <p className="font-bold">{postsCount}</p>
+                  <p className="font-bold">{stats.postsCount}</p>
                   <p className="text-xs text-muted-foreground">Publicaciones</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-bold">{followersCount}</p>
+                  <p className="font-bold">{stats.followersCount}</p>
                   <p className="text-xs text-muted-foreground">Seguidores</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-bold">{followingCount}</p>
+                  <p className="font-bold">{stats.followingCount}</p>
                   <p className="text-xs text-muted-foreground">Siguiendo</p>
                 </div>
               </div>
@@ -144,7 +198,7 @@ export function MobileDrawer() {
                     className="w-full justify-start"
                   >
                     <Link href={`/profile/${userId}`}>
-                      <User className="mr-2 h-4 w-4" />
+                      <UserIcon className="mr-2 h-4 w-4" />
                       Mi Perfil
                     </Link>
                   </Button>
@@ -152,12 +206,12 @@ export function MobileDrawer() {
                 {user && (
                   <Button
                     asChild
-                    variant={pathname === "/pets" ? "secondary" : "ghost"}
+                    variant={pathname === "/admin" ? "secondary" : "ghost"}
                     className="w-full justify-start"
                   >
-                    <Link href="/pets">
+                    <Link href="/admin">
                       <Heart className="mr-2 h-4 w-4" />
-                      Mis Mascotas
+                      Administrar
                     </Link>
                   </Button>
                 )}

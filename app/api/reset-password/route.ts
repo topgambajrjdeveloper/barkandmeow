@@ -5,6 +5,7 @@ import crypto from "crypto"
 import { resetPasswordSchema, newPasswordSchema } from "@/lib/validations"
 import prisma from "@/lib/prismadb"
 
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -24,7 +25,13 @@ export async function POST(request: Request) {
         },
       })
 
-      await sendPasswordResetEmail(email, resetToken)
+      try {
+        await sendPasswordResetEmail(email, resetToken)
+        console.log("Email de restablecimiento enviado correctamente")
+      } catch (emailError) {
+        console.error("Error detallado al enviar email:", emailError)
+        // Continuar con la respuesta aunque falle el email
+      }
     }
 
     // Siempre devolver un mensaje genérico por seguridad
@@ -32,8 +39,11 @@ export async function POST(request: Request) {
       message: "Si existe una cuenta asociada a este correo, recibirás instrucciones para restablecer tu contraseña.",
     })
   } catch (error) {
-    console.error("Error al solicitar restablecimiento de contraseña:", error)
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+    console.error("Error detallado al solicitar restablecimiento de contraseña:", error)
+    return NextResponse.json({ 
+      error: "Error interno del servidor",
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 })
   }
 }
 

@@ -58,6 +58,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
               },
             },
           },
+          // Incluir las insignias del usuario
+          badges: {
+            include: {
+              badge: true,
+            },
+          },
           _count: {
             select: {
               followers: true,
@@ -95,6 +101,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         },
       })
 
+      // Formatear las insignias
+      const badges = user.badges.map((userBadge) => ({
+        id: userBadge.badge.id,
+        name: userBadge.badge.name,
+        description: userBadge.badge.description,
+        imageUrl: userBadge.badge.imageUrl,
+        awardedAt: userBadge.awardedAt.toISOString(),
+      }))
+
       const userProfile = {
         id: user.id,
         username: user.username || "Usuario sin nombre",
@@ -126,6 +141,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         isFollowing: !!isFollowing,
         isFollowedBy: !!isFollowedBy,
         friends: [], // Añadido para cumplir con la interfaz UserProfile
+        // Añadir información de premium y badges
+        isPremium: user.isPremium || false,
+        premiumSince: user.premiumSince ? user.premiumSince.toISOString() : null,
+        premiumUntil: user.premiumUntil ? user.premiumUntil.toISOString() : null,
+        badges: badges,
       }
 
       console.log("API: Returning user profile successfully")

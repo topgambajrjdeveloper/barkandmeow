@@ -4,7 +4,7 @@ import Link from "next/link"
 import type { Metadata } from "next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { StandaloneDonationSection } from "@/components/(root)/about/standalone-donation-section"
+import { PatreonDonationSection } from "@/components/(root)/about/patreon-donation-section"
 
 export const metadata: Metadata = {
   title: "Sobre Nosotros | BarkAndMeow",
@@ -150,9 +150,9 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Reemplazar la sección de donativos con el nuevo componente */}
+        {/* Sección de donaciones con Patreon */}
         <Suspense fallback={<div>Cargando opciones de donación...</div>}>
-          <StandaloneDonationSection />
+          <PatreonDonationSection />
         </Suspense>
 
         <section className="mb-12">

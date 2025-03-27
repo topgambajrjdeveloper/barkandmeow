@@ -1,91 +1,88 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { PrismaClient } from "@prisma/client";
-import { getPostById } from "@/lib/posts";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import PostCard from "@/components/(auth)/components/post/post-card";
-import CommentForm from "@/components/(auth)/components/post/comment-form";
-import CommentList from "@/components/(auth)/components/post/comment-list";
+import { auth } from "@/auth"
+import { redirect } from "next/navigation"
+import { getPostById, hasUserLikedPost } from "@/lib/posts"
+import { MobileNavigation } from "@/components/(root)/ui/MobileNavigation"
+import PostCard from "@/components/(auth)/components/post/post-card"
+import { notFound } from "next/navigation"
+import CommentForm from "@/components/(auth)/components/post/comment-form"
+import Image from "next/image"
+import Link from "next/link"
+import { formatDistanceToNow } from "date-fns"
+import { es } from "date-fns/locale"
 
-const prisma = new PrismaClient();
-
-// Define the correct type for the page props
-type PageProps = {
-  params: {
-    id: string
-  }
-  searchParams?: Record<string, string | string[] | undefined>
-}
-
-export default async function PostPage({ params }: PageProps) {
-  const session = await auth();
+export default async function PostPage({ params }: { params: { id: string } }) {
+  const session = await auth()
 
   if (!session) {
-    redirect("/login");
+    redirect("/login")
   }
 
-  const userId = session?.user?.id;
-  // Fix: Don't await params, it's not a Promise
-  const { id } = await params;
-  const post = await getPostById(id);
+  const { id } = params
+  const post = await getPostById(id)
 
   if (!post) {
-    redirect("/feed");
+    notFound()
   }
 
-  // Verificar si el usuario ha dado like a la publicación
-  const like = await prisma.postLike.findUnique({
-    where: {
-      userId_postId: {
-        userId,
-        postId: post.id,
-      },
-    },
-  });
-
-  const postWithLikeStatus = {
+  const hasLiked = await hasUserLikedPost(post.id, session.user.id)
+  const postWithLike = {
     ...post,
-    hasLiked: !!like,
-  };
-
-  // Obtener el usuario actual para el formulario de comentarios
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      username: true,
-      profileImage: true,
-    },
-  });
+    hasLiked,
+  }
 
   return (
-    <div className="max-w-3xl mx-auto px-4">
-      <div className="mb-6">
-        <Link href="/feed">
-          <Button variant="ghost" className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Volver al feed
-          </Button>
-        </Link>
-      </div>
+    <div className="max-w-screen-sm mx-auto px-4 pb-20 md:pb-0">
+      <PostCard post={postWithLike} currentUserId={session.user.id} showActions={true} />
 
-      <div className="space-y-8 sm:max-w-[500px] mx-auto md:max-w-none">
-        <PostCard
-          post={postWithLikeStatus}
-          currentUserId={userId}
-          showActions={true}
-        />
+      <div className="mt-6">
+        <CommentForm postId={post.id} />
 
-        <div className="bg-card border rounded-lg p-6">
-          <CommentForm postId={post.id} user={user!} />
+        <h2 className="text-xl font-semibold mt-6 mb-4">Comentarios ({post.comments.length})</h2>
 
-          <div className="mt-8">
-            <CommentList postId={post.id} initialComments={post.comments} />
+        {post.comments.length === 0 ? (
+          <div className="text-center py-10">
+            <p className="text-gray-500">No hay comentarios todavía</p>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-4">
+            {post.comments.map((comment) => (
+              <div key={comment.id} className="flex items-start gap-3 p-3 bg-white rounded-lg shadow-sm">
+                <Link href={`/user/${comment.user.username}`}>
+                  <div className="relative h-8 w-8 rounded-full overflow-hidden">
+                    <Image
+                      src={comment.user.profileImage || "/placeholder.svg?height=32&width=32"}
+                      alt={comment.user.username}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                </Link>
+
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Link href={`/user/${comment.user.username}`} className="font-medium hover:underline">
+                      @{comment.user.username}
+                    </Link>
+
+                    <span className="text-gray-500 text-xs ml-auto">
+                      {formatDistanceToNow(new Date(comment.createdAt), {
+                        addSuffix: true,
+                        locale: es,
+                      })}
+                    </span>
+                  </div>
+
+                  <p className="mt-1">{comment.content}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Navegación móvil */}
+      <MobileNavigation />
     </div>
-  );
+  )
 }
+

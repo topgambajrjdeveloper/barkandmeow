@@ -1,21 +1,24 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useUser } from "@/contexts/UserContext"
-import { useParams, useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut } from "lucide-react"
-import { toast } from "sonner"
 import Link from "next/link"
 import Image from "next/image"
-import { formatNumber } from "@/lib/followerNumber"
-import type { Follower, Pet, UserProfile } from "@/types"
+import { toast } from "sonner"
+import { LogOut } from "lucide-react"
 import { signOut } from "next-auth/react"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { useUser } from "@/contexts/UserContext"
+import { formatNumber } from "@/lib/followerNumber"
+import { useParams, useRouter } from "next/navigation"
+import type { Follower, Pet, PostCardProps, UserProfile } from "@/types"
 import { MobileNavigation } from "@/components/(root)/ui/MobileNavigation"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { UserBadges } from "@/components/(auth)/components/profile/user-badges"
+import { PremiumBadge } from "@/components/(auth)/components/profile/premium-badge"
 import PostCard from "@/components/(auth)/components/post/post-card" // Importar tu componente PostCard existente
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+
 
 export default function ProfilePage() {
   const { user, loading } = useUser()
@@ -25,7 +28,7 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isFollowing, setIsFollowing] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [posts, setPosts] = useState<any[]>([]) // Estado para almacenar las publicaciones
+  const [posts, setPosts] = useState<PostCardProps[]>([]) // Estado para almacenar las publicaciones
   const [isLoadingPosts, setIsLoadingPosts] = useState(false) // Estado para controlar la carga de publicaciones
 
   // Detectar si es dispositivo móvil
@@ -171,7 +174,19 @@ export default function ProfilePage() {
               <AvatarFallback>{profile.username[0]}</AvatarFallback>
             </Avatar>
             <div className="space-y-2 text-center sm:text-left">
-              <h1 className="text-3xl font-bold">{profile.username}</h1>
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                <h1 className="text-3xl font-bold">{profile.username}</h1>
+                {/* Mostrar insignia premium si el usuario es premium */}
+                {profile.isPremium && <PremiumBadge />}
+              </div>
+
+              {/* Mostrar todas las insignias del usuario */}
+              {profile.badges && profile.badges.length > 0 && (
+                <div className="flex justify-center sm:justify-start">
+                  <UserBadges badges={profile.badges} />
+                </div>
+              )}
+
               <div className="flex flex-wrap justify-center gap-4 sm:justify-start">
                 <div>
                   <p className="text-lg font-semibold">{formatNumber(profile.postsCount)}</p>
@@ -209,7 +224,7 @@ export default function ProfilePage() {
                 ) : (
                   <>
                     <Button onClick={handleFollow}>{isFollowing ? "Dejar de seguir" : "Seguir"}</Button>
-                    {profile.isFollowing && (
+                    {profile.isFollowedBy && (
                       <span className="text-sm text-muted-foreground items-center">Te sigue</span>
                     )}
                   </>
