@@ -9,7 +9,8 @@ export const sendEmailWithResend = async ({
   to,
   subject,
   html,
-  from = process.env.EMAIL_FROM || "no-reply@barkandmeow.app",
+  // from = process.env.EMAIL_FROM || "no-reply@barkandmeow.app",
+  from = process.env.EMAIL_FROM || "onboarding@resend.dev",
   replyTo,
 }: {
   to: string

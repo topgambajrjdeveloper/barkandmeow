@@ -22,7 +22,9 @@ export async function sendEmail({
   to,
   subject,
   html,
-  from = process.env.EMAIL_FROM || "no-reply@barkandmeow.app",
+  // from = process.env.EMAIL_FROM || "no-reply@barkandmeow.app",
+  from = process.env.EMAIL_FROM || "onboarding@resend.dev",
+
   replyTo,
   provider = (process.env.DEFAULT_EMAIL_PROVIDER as EmailProvider) || EmailProvider.NODEMAILER,
   fallbackProvider = true,
@@ -123,7 +125,7 @@ export async function sendContactEmail(name: string, email: string, subject: str
 
   try {
     await sendEmail({
-      to: process.env.CONTACT_EMAIL || "info@barkandmeow.app",
+      to: process.env.CONTACT_EMAIL || "onboarding@resend.dev",
       subject: `Formulario de contacto: ${subject}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

@@ -85,131 +85,106 @@ git push -u origin main
 
 ###################################################
 
-Thought for 1 second### Guía para configurar PayPal y recibir donaciones
+Thought for 3 seconds### Cómo obtener y configurar RESEND_API_KEY
 
-Para recibir donaciones a través de PayPal en tu aplicación BarkAndMeow, necesitas configurar una cuenta de desarrollador de PayPal y obtener las credenciales necesarias. Aquí te guío paso a paso:
+Para obtener y configurar una clave de API de Resend (servicio de envío de emails), sigue estos pasos:
 
-## 1. Crear una cuenta de PayPal Business
+## 1. Crear una cuenta en Resend
 
-Si aún no tienes una cuenta de PayPal Business:
-
-1. Ve a [PayPal.com](https://www.paypal.com)
-2. Haz clic en "Registrarse" y selecciona "Cuenta de empresa"
-3. Sigue los pasos para completar el registro
-4. Verifica tu cuenta siguiendo las instrucciones que recibirás por correo electrónico
+1. Ve a [resend.com](https://resend.com) y regístrate para obtener una cuenta
+2. Completa el proceso de verificación de tu cuenta
 
 
-## 2. Acceder al Portal de Desarrolladores de PayPal
+## 2. Obtener tu API Key
 
-1. Ve a [PayPal Developer](https://developer.paypal.com)
-2. Inicia sesión con tu cuenta de PayPal Business
-3. Una vez dentro, verás el Dashboard de desarrollador
-
-
-## 3. Crear una aplicación para obtener credenciales
-
-1. En el Dashboard de desarrollador, haz clic en "Apps & Credentials" en el menú superior
-2. Haz clic en "Create App" bajo "REST API apps"
-3. Proporciona un nombre para tu aplicación (por ejemplo, "BarkAndMeow Donations")
-4. Selecciona el tipo de cuenta que deseas utilizar:
-
-1. **Sandbox**: Para pruebas (recomendado para empezar)
-2. **Live**: Para producción (cuando estés listo para recibir donaciones reales)
+1. Una vez que hayas iniciado sesión en tu cuenta de Resend, ve al panel de control
+2. En el menú lateral, busca la sección "API Keys"
+3. Haz clic en "Create API Key"
+4. Dale un nombre descriptivo a tu API Key (por ejemplo, "PetSocial App")
+5. Selecciona los permisos necesarios (generalmente "Full Access" para desarrollo)
+6. Haz clic en "Create" o "Generate API Key"
+7. **¡IMPORTANTE!** Copia la clave API generada inmediatamente, ya que no podrás verla de nuevo
 
 
+## 3. Configurar la API Key en tu aplicación Next.js
 
-5. Haz clic en "Create App"
+### Opción 1: Usando un archivo .env.local (para desarrollo)
 
-
-## 4. Obtener las credenciales
-
-Después de crear la aplicación, serás redirigido a la página de detalles de la aplicación donde encontrarás:
-
-1. **Client ID**: Es una cadena larga que identifica tu aplicación
-2. **Secret**: Es tu clave secreta (haz clic en "Show" para verla)
-
-
-Estas son las credenciales que necesitas para configurar la integración de PayPal en tu aplicación.
-
-## 5. Configurar las variables de entorno
-
-Ahora, necesitas configurar estas credenciales como variables de entorno en tu aplicación:
-
-1. Para el entorno de desarrollo (Sandbox):
+1. Crea o edita el archivo `.env.local` en la raíz de tu proyecto
+2. Añade la siguiente línea:
 
 ```plaintext
-NEXT_PUBLIC_PAYPAL_CLIENT_ID=tu_client_id_de_sandbox
-PAYPAL_SECRET=tu_secret_de_sandbox
+RESEND_API_KEY=re_123abc...  # Reemplaza con tu clave real
 ```
 
 
-2. Para el entorno de producción (Live):
+3. Guarda el archivo
 
-```plaintext
-NEXT_PUBLIC_PAYPAL_CLIENT_ID=tu_client_id_de_produccion
-PAYPAL_SECRET=tu_secret_de_produccion
+
+### Opción 2: Configurar en Vercel (para producción)
+
+1. Ve al dashboard de Vercel
+2. Selecciona tu proyecto
+3. Ve a "Settings" > "Environment Variables"
+4. Añade una nueva variable:
+
+1. Nombre: `RESEND_API_KEY`
+2. Valor: tu clave API de Resend
+
+
+
+5. Selecciona los entornos donde quieres que esté disponible (Production, Preview, Development)
+6. Guarda los cambios
+
+
+## 4. Usar la API Key en tu código
+
+Aquí hay un ejemplo de cómo usar Resend en tu aplicación Next.js:
+
+```typescriptreact
+import { Resend } from 'resend';
+
+// Inicializar Resend con tu API key
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Función para enviar un email
+export async function sendEmail(to: string, subject: string, content: string) {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'PetSocial <noreply@tudominio.com>',
+      to: [to],
+      subject: subject,
+      html: content,
+    });
+    
+    if (error) {
+      console.error('Error al enviar email:', error);
+      return { success: false, error };
+    }
+    
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error al enviar email:', error);
+    return { success: false, error };
+  }
+}
 ```
 
+## 5. Verificar tu dominio (recomendado)
+
+Para mejorar la entregabilidad de tus emails:
+
+1. En el dashboard de Resend, ve a "Domains"
+2. Haz clic en "Add Domain"
+3. Sigue las instrucciones para verificar tu dominio
+4. Una vez verificado, actualiza el campo "from" en tu código para usar tu dominio verificado
 
 
+## Notas importantes
 
-## 6. Configurar los permisos de la aplicación
-
-1. En la página de detalles de tu aplicación, asegúrate de que los siguientes permisos estén habilitados:
-
-1. **Transaction Search**: Para buscar y verificar transacciones
-2. **Payments**: Para procesar pagos
-3. **Tracking**: Para seguimiento de pagos
+- Mantén tu API key segura y nunca la expongas en el código del lado del cliente
+- En desarrollo, puedes usar el modo de prueba de Resend para evitar enviar emails reales
+- Asegúrate de que tu API key tenga los permisos necesarios para las operaciones que quieres realizar
 
 
-
-2. Haz clic en "Save" si realizas cambios en los permisos
-
-
-## 7. Configurar Webhooks (opcional pero recomendado)
-
-Los webhooks te permiten recibir notificaciones automáticas cuando ocurren eventos como pagos completados:
-
-1. En la página de detalles de tu aplicación, desplázate hacia abajo hasta la sección "Webhooks"
-2. Haz clic en "Add Webhook"
-3. Ingresa la URL de tu webhook (por ejemplo, `https://tudominio.com/api/webhooks/paypal`)
-4. Selecciona los eventos que deseas recibir (al menos "Payment capture completed")
-5. Haz clic en "Save"
-
-
-## 8. Probar la integración
-
-Antes de pasar a producción, es importante probar la integración en el entorno Sandbox:
-
-1. Usa las credenciales de Sandbox en tu aplicación
-2. Realiza donaciones de prueba utilizando cuentas de Sandbox
-3. Verifica que los webhooks funcionen correctamente
-4. Comprueba que las donaciones se registren en tu base de datos
-
-
-## 9. Pasar a producción
-
-Cuando estés listo para recibir donaciones reales:
-
-1. Cambia las credenciales de Sandbox por las de Live en tus variables de entorno
-2. Actualiza la URL del webhook si es necesario
-3. Realiza una pequeña donación de prueba para verificar que todo funciona correctamente
-
-
-## 10. Personalizar la experiencia de donación
-
-Puedes personalizar la experiencia de donación en PayPal:
-
-1. En el Dashboard de PayPal Business, ve a "Configuración de la cuenta"
-2. Personaliza el logotipo, colores y otros elementos visuales
-3. Configura mensajes de agradecimiento personalizados para los donantes
-
-
-## Consideraciones adicionales
-
-- **Comisiones**: PayPal cobra comisiones por las donaciones. Asegúrate de entender la estructura de tarifas.
-- **Impuestos**: Consulta con un asesor fiscal sobre las implicaciones fiscales de recibir donaciones.
-- **Cumplimiento normativo**: Dependiendo de tu país, puede haber requisitos legales adicionales para recibir donaciones.
-
-
-¿Necesitas ayuda con algún paso específico de esta guía?
+¿Necesitas ayuda para implementar alguna funcionalidad específica de envío de emails en tu aplicación?
