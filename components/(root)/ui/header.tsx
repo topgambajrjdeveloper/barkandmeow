@@ -4,6 +4,7 @@ import Link from "next/link"
 import { LogOut, User } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { LanguageToggle } from "@/components/language-toggle"
 import { useUser } from "@/contexts/UserContext"
 import { signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -76,11 +77,12 @@ export function Header() {
 
               <div className="flex items-center space-x-2">
                 <ThemeToggle />
+                <LanguageToggle />
                 {user ? (
                   <>
                     <Link href={`/profile/${userId}`}>
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={profileImage || "/placeholder-user.jpg"} alt={displayName || "Usuario"} />
+                        <AvatarImage src={user?.profileImage || "/placeholder.svg"} alt={displayName || "Usuario"} />
                         <AvatarFallback>
                           {displayName ? displayName[0].toUpperCase() : <User className="h-4 w-4" />}
                         </AvatarFallback>

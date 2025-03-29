@@ -106,7 +106,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 
-    const petId = params.id
+    const { id: petId } = await params
 
     // Verificar que la mascota existe
     const pet = await prisma.pet.findUnique({

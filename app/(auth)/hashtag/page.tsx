@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
 import { useEffect, useState } from "react"
@@ -56,9 +57,10 @@ export default function HashtagPage() {
   }
 
   return (
-    <div className="max-w-screen-sm mx-auto px-4 pb-20 md:pb-0">
-      <Card className="p-6 mt-4 text-center">
-        <div className="mb-6 flex justify-center">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 max-w-screen-sm mx-auto md:max-w-none md:mx-1 pb-20 md:pb-0">
+      <div className="md:col-span-2 space-y-4">
+      <Card className="border-background/1 border-4 p-6 mt-4 text-center space-y-6">
+        <div className="mb-6 flex justify-center ">
           <div className="bg-red-100 p-3 rounded-full">
             <AlertCircle className="h-8 w-8 text-red-500" />
           </div>
@@ -115,6 +117,7 @@ export default function HashtagPage() {
           </div>
         </div>
       </Card>
+      </div>
 
       <MobileNavigation />
     </div>

@@ -50,7 +50,7 @@ export function processContent(content: string) {
 interface PostCardProps {
   post: {
     id: string
-    content: string
+    content: string | null
     imageUrl?: string | null
     createdAt: string | Date
     user: {
@@ -77,6 +77,8 @@ interface PostCardProps {
   showActions?: boolean
   onDelete?: () => void
 }
+
+
 
 export default function PostCard({ post, currentUserId, showActions = true, onDelete }: PostCardProps) {
   const router = useRouter()

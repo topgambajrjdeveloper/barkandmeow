@@ -3,7 +3,17 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { StoreIcon as Shop, Stethoscope, Coffee, Calendar, Users, PawPrint, MapPin, UserIcon } from "lucide-react"
+import {
+  StoreIcon as Shop,
+  Stethoscope,
+  Coffee,
+  Calendar,
+  Users,
+  PawPrint,
+  MapPin,
+  UserIcon,
+  ArrowRight,
+} from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
@@ -13,41 +23,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Slider } from "@/components/ui/slider"
 import Image from "next/image"
 import { formatNumber } from "@/lib/followerNumber"
+import { Badge } from "@/components/ui/badge"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
 
-// Interfaces para representar la relación uno a muchos entre usuarios y mascotas
-interface Pet {
-  id: string
-  name: string
-  type: string
-  breed: string | null
-  age: number | null
-  image: string | null
-  isFollowing?: boolean
-  isOwner?: boolean // Añadimos esta propiedad para identificar mascotas propias
-}
-
-interface UserWithPets {
-  id: string
-  username: string
-  profileImage: string | null
-  followersCount: number
-  isFollowing: boolean
-  distance: number
-  pets: Pet[]
-  isCurrentUser?: boolean // Añadimos esta propiedad para identificar al usuario actual
-}
-
-interface Service {
-  id: string
-  title: string
-  description: string
-  category: string
-  distance: number
-  location: {
-    latitude: number
-    longitude: number
-  }
-}
+// Importar las nuevas utilidades al principio del archivo
+import { getActiveCategoryFromUrl } from "@/lib/explore-helpers"
+import { Event, Pet, Service, UserWithPets } from "@/types"
 
 // Categorías para la exploración
 const categories = [
@@ -101,11 +83,37 @@ export default function ExplorePage() {
   const [usersWithPets, setUsersWithPets] = useState<UserWithPets[]>([])
   const [popularUsers, setPopularUsers] = useState<UserWithPets[]>([])
   const [services, setServices] = useState<Service[]>([])
+  const [events, setEvents] = useState<Event[]>([])
   const [isLoading, setIsLoading] = useState(true)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [activeCategory, setActiveCategory] = useState("all")
+  const [activeCategory, setActiveCategory] = useState(() => {
+    // Solo ejecutar en el cliente
+    if (typeof window !== "undefined") {
+      return getActiveCategoryFromUrl()
+    }
+    return "all"
+  })
   const [radius, setRadius] = useState(5) // Radio de búsqueda en km
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  // Verificar si hay un parámetro de categoría en la URL
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    const categoryParam = searchParams.get("category")
+    if ((categoryParam && categories.some((cat) => cat.id === categoryParam)) || categoryParam === "popular") {
+      setActiveCategory(categoryParam)
+    }
+  }, [])
+
+  // Función para cambiar la categoría activa y actualizar la URL
+  const handleCategoryChange = (categoryId: string) => {
+    setActiveCategory(categoryId)
+
+    // Actualizar la URL con el parámetro de categoría
+    const url = new URL(window.location.href)
+    url.searchParams.set("category", categoryId)
+    window.history.pushState({}, "", url)
+  }
 
   // Obtener el ID del usuario actual
   useEffect(() => {
@@ -144,12 +152,18 @@ export default function ExplorePage() {
           `/api/services/nearby?lat=${location.latitude}&lng=${location.longitude}&radius=${radius}`,
         )
 
+        // Obtener eventos cercanos
+        const eventsResponse = await fetch(
+          `/api/events/nearby?lat=${location.latitude}&lng=${location.longitude}&radius=${radius}`,
+        )
+
         // Obtener mascotas populares (usando la API existente para compatibilidad)
         const petsResponse = await fetch("/api/pets/popular")
 
         // Procesar respuestas
         let usersData: UserWithPets[] = []
         let servicesData: Service[] = []
+        let eventsData: Event[] = []
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let petsData: any[] = []
 
@@ -186,6 +200,25 @@ export default function ExplorePage() {
           servicesData = await servicesResponse.json()
         } else {
           console.error("Error fetching services:", await servicesResponse.text())
+        }
+
+        if (eventsResponse.ok) {
+          eventsData = await eventsResponse.json()
+        } else {
+          // Si la API de eventos cercanos no existe aún, obtener todos los eventos
+          try {
+            const allEventsResponse = await fetch("/api/events?upcoming=true")
+            if (allEventsResponse.ok) {
+              const data = await allEventsResponse.json()
+              // Añadir una distancia simulada para cada evento
+              eventsData = data.events.map((event: any) => ({
+                ...event,
+                distance: Math.random() * radius, // Distancia aleatoria dentro del radio
+              }))
+            }
+          } catch (error) {
+            console.error("Error fetching all events:", error)
+          }
         }
 
         if (petsResponse.ok) {
@@ -228,6 +261,7 @@ export default function ExplorePage() {
 
         setUsersWithPets(usersData)
         setServices(servicesData)
+        setEvents(eventsData)
       } catch (error) {
         console.error("Error fetching nearby data:", error)
         toast.error("Error al obtener datos cercanos")
@@ -378,6 +412,21 @@ export default function ExplorePage() {
     )
   }
 
+  // Añadir un efecto para escuchar el evento personalizado
+  useEffect(() => {
+    const handleCategoryChange = (event: CustomEvent) => {
+      setActiveCategory(event.detail)
+    }
+
+    // Añadir el event listener
+    window.addEventListener("exploreCategoryChange", handleCategoryChange as EventListener)
+
+    // Limpiar el event listener
+    return () => {
+      window.removeEventListener("exploreCategoryChange", handleCategoryChange as EventListener)
+    }
+  }, [])
+
   // Renderizar botón de seguir para mascotas
   const renderPetFollowButton = (pet: Pet & { userId: string }) => {
     // Si la mascota pertenece al usuario actual, mostrar botón deshabilitado
@@ -444,7 +493,7 @@ export default function ExplorePage() {
         </div>
       )}
 
-      <Tabs defaultValue="all" className="w-full" onValueChange={setActiveCategory}>
+      <Tabs value={activeCategory} defaultValue="all" className="w-full" onValueChange={handleCategoryChange}>
         <div className="overflow-x-auto pb-3 mb-3 scrollbar-hide">
           <TabsList className="lg:w-full md:w-max inline-flex">
             <TabsTrigger value="all">Todos</TabsTrigger>
@@ -495,14 +544,15 @@ export default function ExplorePage() {
                       <p className="text-sm mt-2">{usersWithPets.length} usuarios cercanos</p>
                     )}
                     {category.id === "pets" && <p className="text-sm mt-2">{getAllPets().length} mascotas cercanas</p>}
-                    {category.id !== "users" && category.id !== "pets" && (
+                    {category.id === "events" && <p className="text-sm mt-2">{events.length} eventos próximos</p>}
+                    {category.id !== "users" && category.id !== "pets" && category.id !== "events" && (
                       <p className="text-sm mt-2">
                         {services.filter((s) => s.category === category.id).length} servicios cercanos
                       </p>
                     )}
                   </CardContent>
                   <CardFooter>
-                    <Button variant="outline" className="w-full" onClick={() => setActiveCategory(category.id)}>
+                    <Button variant="outline" className="w-full" onClick={() => handleCategoryChange(category.id)}>
                       Ver {category.title.toLowerCase()}
                     </Button>
                   </CardFooter>
@@ -520,7 +570,7 @@ export default function ExplorePage() {
                   <p className="text-sm mt-2">{popularUsers.length} usuarios populares</p>
                 </CardContent>
                 <CardFooter>
-                  <Button variant="outline" className="w-full" onClick={() => setActiveCategory("popular")}>
+                  <Button variant="outline" className="w-full" onClick={() => handleCategoryChange("popular")}>
                     Ver usuarios populares
                   </Button>
                 </CardFooter>
@@ -732,6 +782,120 @@ export default function ExplorePage() {
           )}
         </TabsContent>
 
+        <TabsContent value="events">
+          {!userLocation || !userLocation.latitude ? (
+            <div className="text-center py-8">
+              <p className="mb-4">Necesitamos tu ubicación para mostrarte eventos cercanos</p>
+              <Button onClick={getLocation} disabled={isLocating}>
+                {isLocating ? "Obteniendo ubicación..." : "Compartir mi ubicación"}
+              </Button>
+            </div>
+          ) : isLoading ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="overflow-hidden">
+                  <div className="aspect-video">
+                    <Skeleton className="h-full w-full" />
+                  </div>
+                  <CardHeader>
+                    <Skeleton className="h-6 w-40" />
+                    <div className="space-y-2 mt-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </CardContent>
+                  <CardFooter>
+                    <Skeleton className="h-9 w-full" />
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          ) : events.length === 0 ? (
+            <div className="text-center py-8">
+              <p>No se encontraron eventos cercanos. Intenta aumentar el radio de búsqueda.</p>
+              <Button asChild className="mt-4">
+                <Link href="/explore/events">Ver todos los eventos</Link>
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold">Eventos cercanos</h2>
+                <Button asChild variant="outline">
+                  <Link href="/explore/events">
+                    Ver todos los eventos
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {events.map((event) => {
+                  const eventDate = new Date(event.date)
+                  const isToday = new Date().toDateString() === eventDate.toDateString()
+                  const isTomorrow =
+                    new Date(new Date().setDate(new Date().getDate() + 1)).toDateString() === eventDate.toDateString()
+
+                  let dateLabel = format(eventDate, "PPP", { locale: es })
+                  if (isToday) dateLabel = "Hoy, " + format(eventDate, "p", { locale: es })
+                  if (isTomorrow) dateLabel = "Mañana, " + format(eventDate, "p", { locale: es })
+
+                  return (
+                    <Card key={event.id} className="overflow-hidden flex flex-col h-full">
+                      <div className="relative h-48 w-full">
+                        <Image
+                          src={event.imageUrl || "/placeholder.svg?height=200&width=400"}
+                          alt={event.title}
+                          fill
+                          className="object-cover"
+                        />
+                        {isToday && (
+                          <Badge className="absolute top-2 right-2 bg-secondary text-secondary-foreground">Hoy</Badge>
+                        )}
+                      </div>
+                      <CardHeader>
+                        <CardTitle className="line-clamp-2">{event.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex-grow">
+                        <div className="space-y-3">
+                          <div className="flex items-center text-sm">
+                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span>{dateLabel}</span>
+                          </div>
+                          <div className="flex items-center text-sm">
+                            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span className="line-clamp-1">{event.location}</span>
+                          </div>
+                          <div className="flex items-center text-sm">
+                            <Users className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span>{event._count.attendees} asistentes</span>
+                          </div>
+                          <div className="flex items-center text-sm">
+                            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span>A {event.distance.toFixed(1)} km de ti</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-3 mt-2">{event.description}</p>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="pt-0">
+                        <Button asChild variant="outline" className="w-full">
+                          <Link href={`/events/${event.id}`}>
+                            Ver detalles
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  )
+                })}
+              </div>
+            </>
+          )}
+        </TabsContent>
+
         <TabsContent value="popular">
           {isLoading ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -845,7 +1009,7 @@ export default function ExplorePage() {
         </TabsContent>
 
         {categories
-          .filter((c) => c.id !== "users" && c.id !== "pets")
+          .filter((c) => c.id !== "users" && c.id !== "pets" && c.id !== "events")
           .map((category) => (
             <TabsContent key={category.id} value={category.id}>
               {!userLocation || !userLocation.latitude ? (

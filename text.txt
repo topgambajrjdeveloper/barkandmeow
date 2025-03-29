@@ -188,3 +188,7 @@ Para mejorar la entregabilidad de tus emails:
 
 
 ¿Necesitas ayuda para implementar alguna funcionalidad específica de envío de emails en tu aplicación?
+
+
+
+#### npx prisma migrate dev --name add-events

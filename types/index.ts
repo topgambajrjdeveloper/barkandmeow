@@ -18,6 +18,8 @@ export interface Pet {
   description: string | null
   createdAt: string
   userId: string
+  isFollowing?: boolean
+  isOwner?: boolean // Añadimos esta propiedad para identificar mascotas propias
   user: {
     id: string
     username: string
@@ -280,3 +282,82 @@ export interface DonationData {
   userId?: string
 }
 
+
+export interface Event {
+  id: string
+  title: string
+  description: string
+  location: string
+  latitude?: number | null
+  longitude?: number | null
+  date: string
+  endDate?: string | null
+  imageUrl?: string | null
+  createdAt: string
+  updatedAt: string
+  userId: string
+  isPublished: boolean
+  distance: number
+  // Relaciones
+  createdBy?: User
+  attendees?: User[]
+  
+  // Contadores
+  _count: {
+    attendees: number
+  }
+}
+
+// Interfaz para la creación de eventos
+export interface EventFormData {
+  title: string
+  description: string
+  location: string
+  date: string
+  endDate?: string | null
+  imageUrl?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  isPublished: boolean
+}
+
+// Interfaz para la respuesta paginada de eventos
+export interface EventsResponse {
+  events: Event[]
+  pagination: {
+    total: number
+    pages: number
+    page: number
+    limit: number
+  }
+}
+
+// Estado de asistencia a un evento
+export interface EventAttendanceStatus {
+  eventId: string
+  attending: boolean
+}
+
+
+export interface Service {
+  id: string
+  title: string
+  description: string
+  category: string
+  distance: number
+  location: {
+    latitude: number
+    longitude: number
+  }
+}
+
+export interface UserWithPets {
+  id: string
+  username: string
+  profileImage: string | null
+  followersCount: number
+  isFollowing: boolean
+  distance: number
+  pets: Pet[]
+  isCurrentUser?: boolean // Añadimos esta propiedad para identificar al usuario actual
+}

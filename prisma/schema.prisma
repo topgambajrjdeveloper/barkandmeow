@@ -58,6 +58,8 @@ model User {
   premiumUntil         DateTime?
   donationIntents      DonationIntent[]
   badges               UserBadge[]
+  createdEvents Event[]
+  attendingEvents Event[] @relation("EventAttendees")
 }
 
 model Pet {
@@ -360,3 +362,23 @@ model UserBadge {
 }
 
 
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  location    String
+  latitude    Float?
+  longitude   Float?
+  date        DateTime
+  endDate     DateTime?
+  imageUrl    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  attendees   User[]    @relation("EventAttendees")
+  isPublished Boolean   @default(false)
+  
+  @@index([userId])
+  @@index([date])
+}

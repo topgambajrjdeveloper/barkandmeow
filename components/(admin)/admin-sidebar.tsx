@@ -50,6 +50,11 @@ export function AdminSidebar() {
       icon: <LayoutDashboard className="mr-2 h-4 w-4" />,
     },
     {
+      href: "/admin/events",
+      title: "Eventos",
+      icon: <Calendar className="mr-2 h-4 w-4" />,
+    },
+    {
       href: "/admin/users",
       title: "Usuarios",
       icon: <Users className="mr-2 h-4 w-4" />,
@@ -125,11 +130,6 @@ export function AdminSidebar() {
       href: "/admin/messages",
       title: "Mensajes",
       icon: <MessageSquare className="mr-2 h-4 w-4" />,
-    },
-    {
-      href: "/admin/events",
-      title: "Eventos",
-      icon: <Calendar className="mr-2 h-4 w-4" />,
     },
     {
       href: "/admin/locations",
