@@ -50,9 +50,12 @@ chmod +x build-ts-docker.sh
 ·. **Publicar desde Docker hacia Render**
 
 ```
-docker push topgambajrjdeveloper/barkandmeow
+docker-compose -f docker-compose.simple.yml up -d
 ```
 
+```
+docker push topgambajrjdeveloper/barkandmeow
+```
 
 
 

@@ -38,8 +38,7 @@ export async function GET() {
       return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
     }
 
-    console.log("API: Current user data retrieved successfully:", user)
-
+    
     return NextResponse.json({
       ...user,
       createdAt: user.createdAt.toISOString(),

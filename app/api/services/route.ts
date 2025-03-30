@@ -11,9 +11,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Se requiere el parámetro 'category'" }, { status: 400 })
     }
 
+    // Añadir logs para depuración
+    console.log(`Buscando servicios con category=${category}`)
+
     const services = await prisma.service.findMany({
       where: {
-        subCategory: category,
+        category: category,
         isActive: true,
       },
       orderBy: {
@@ -29,12 +32,20 @@ export async function GET(request: Request) {
         phone: true,
         website: true,
         imageUrl: true,
+        category: true,
         subCategory: true,
         tags: true,
         openingHours: true,
         rating: true,
+        isActive: true,
       },
     })
+
+    // Log para depuración
+    console.log(`Encontrados ${services.length} servicios para category=${category}`)
+    if (services.length > 0) {
+      console.log("Primer servicio:", JSON.stringify(services[0], null, 2))
+    }
 
     return NextResponse.json(services)
   } catch (error) {
@@ -55,7 +66,7 @@ export async function POST(request: Request) {
     const data = await request.json()
 
     // Validar datos requeridos
-    if (!data.title || !data.subCategory) {
+    if (!data.title || !data.category) {
       return NextResponse.json({ error: "Se requieren título y categoría" }, { status: 400 })
     }
 

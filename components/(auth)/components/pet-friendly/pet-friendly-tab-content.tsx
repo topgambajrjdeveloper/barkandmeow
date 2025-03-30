@@ -11,9 +11,14 @@ import Link from "next/link"
 import type { Service } from "@/types"
 import { getUserLocation } from "@/lib/location"
 
+// Actualizar la interfaz PetFriendlyTabContentProps para aceptar cualquier tipo de servicio
+
 interface PetFriendlyTabContentProps {
-  initialPlaces?: Service[]
+  initialPlaces?: any[] // Cambiar a any[] para evitar problemas de tipo
 }
+
+// Alternativamente, puedes usar una conversión de tipo al recibir los props:
+// export default function PetFriendlyTabContent({ initialPlaces = [] as Service[] }: PetFriendlyTabContentProps) {
 
 export default function PetFriendlyTabContent({ initialPlaces = [] }: PetFriendlyTabContentProps) {
   const [petFriendlyPlaces, setPetFriendlyPlaces] = useState<Service[]>(initialPlaces)
@@ -125,7 +130,7 @@ export default function PetFriendlyTabContent({ initialPlaces = [] }: PetFriendl
             </Button>
           )}
           <Button variant="outline" asChild>
-            <Link href="/map?category=pet-friendly">Ver en mapa</Link>
+            <Link href="/map/pet-friendly">Ver en mapa</Link>
           </Button>
         </div>
       </div>
@@ -158,7 +163,7 @@ export default function PetFriendlyTabContent({ initialPlaces = [] }: PetFriendl
               <p className="text-sm text-muted-foreground flex items-center">
                 <MapPin className="h-3 w-3 mr-1" />
                 {place.address || "Dirección no disponible"}
-                {place.distance && <span className="ml-1">• a {place.distance.toFixed(1)} km</span>}
+                {place.distance != null && <span className="ml-1">• a {place.distance.toFixed(1)} km</span>}
               </p>
             </CardHeader>
             <CardContent className="space-y-3">

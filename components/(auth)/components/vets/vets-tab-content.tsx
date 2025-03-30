@@ -12,7 +12,7 @@ import type { Service } from "@/types"
 import { getUserLocation } from "@/lib/location"
 
 interface VetsTabContentProps {
-  initialVets?: Service[]
+  initialVets?: any[] // Cambiar a any[] para evitar problemas de tipo
 }
 
 export default function VetsTabContent({ initialVets = [] }: VetsTabContentProps) {
@@ -43,12 +43,15 @@ export default function VetsTabContent({ initialVets = [] }: VetsTabContentProps
   const fetchVets = useCallback(async () => {
     if (!isLoading) setIsRefreshing(true)
     try {
+      // Modificar para obtener todos los datos independientemente de la ubicación
       let url = "/api/services?category=vet"
 
-      // Add location parameters if available
+      // Si tenemos ubicación, podemos usarla para calcular distancias, pero no filtrar
       if (userLocation?.latitude && userLocation?.longitude) {
-        url = `/api/services/nearby?category=vet&lat=${userLocation.latitude}&lng=${userLocation.longitude}&radius=10`
+        url = `/api/services/nearby?category=vet&lat=${userLocation.latitude}&lng=${userLocation.longitude}&all=true`
       }
+
+      console.log("Fetching vets from URL:", url)
 
       const response = await fetch(url)
 
@@ -57,6 +60,7 @@ export default function VetsTabContent({ initialVets = [] }: VetsTabContentProps
       }
 
       const data = await response.json()
+      console.log("Received vets data:", data.length, "items")
       setVets(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching vets:", error)
@@ -67,7 +71,7 @@ export default function VetsTabContent({ initialVets = [] }: VetsTabContentProps
       setIsLoading(false)
       setIsRefreshing(false)
     }
-  }, [userLocation, setIsLoading, setVets, toast, vets.length, isLoading, setIsRefreshing])
+  }, [userLocation, setIsLoading, setVets, vets.length, isLoading])
 
   useEffect(() => {
     fetchVets()
@@ -98,8 +102,8 @@ export default function VetsTabContent({ initialVets = [] }: VetsTabContentProps
   if (vets.length === 0) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl font-semibold mb-2">No hay veterinarias cercanas</h2>
-        <p className="text-muted-foreground mb-6">No se encontraron clínicas veterinarias en tu zona.</p>
+        <h2 className="text-xl font-semibold mb-2">No hay veterinarias disponibles</h2>
+        <p className="text-muted-foreground mb-6">No se encontraron clínicas veterinarias en la base de datos.</p>
         <Button asChild>
           <Link href="/contact">Sugerir una veterinaria</Link>
         </Button>
@@ -123,7 +127,7 @@ export default function VetsTabContent({ initialVets = [] }: VetsTabContentProps
             </Button>
           )}
           <Button variant="outline" asChild>
-            <Link href="/map?category=vet">Ver en mapa</Link>
+            <Link href="/map/vet">Ver en mapa</Link>
           </Button>
         </div>
       </div>
@@ -156,7 +160,7 @@ export default function VetsTabContent({ initialVets = [] }: VetsTabContentProps
               <p className="text-sm text-muted-foreground flex items-center">
                 <MapPin className="h-3 w-3 mr-1" />
                 {vet.address || "Dirección no disponible"}
-                {vet.distance && <span className="ml-1">• a {vet.distance.toFixed(1)} km</span>}
+                {vet.distance != null && <span className="ml-1">• a {vet.distance.toFixed(1)} km</span>}
               </p>
             </CardHeader>
             <CardContent className="space-y-3">

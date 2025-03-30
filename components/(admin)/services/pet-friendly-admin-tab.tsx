@@ -89,7 +89,8 @@ export default function PetFriendlyAdminTab({ initialPlaces }: PetFriendlyAdminT
         },
         body: JSON.stringify({
           ...formData,
-          subCategory: "pet-friendly",
+          category: "pet-friendly",
+          subCategory: "pet-friendly", // Mantener para compatibilidad
         }),
       })
 

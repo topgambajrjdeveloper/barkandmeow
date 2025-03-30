@@ -89,7 +89,8 @@ export default function VetsAdminTab({ initialVets }: VetsAdminTabProps) {
         },
         body: JSON.stringify({
           ...formData,
-          subCategory: "vet",
+          category: "vet",
+          subCategory: "vet", // Mantener para compatibilidad
         }),
       })
 

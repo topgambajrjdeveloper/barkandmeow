@@ -11,9 +11,14 @@ import Link from "next/link"
 import type { Service } from "@/types"
 import { getUserLocation } from "@/lib/location"
 
+// Actualizar la interfaz ShopsTabContentProps para aceptar cualquier tipo de servicio
+
 interface ShopsTabContentProps {
-  initialShops?: Service[]
+  initialShops?: any[] // Cambiar a any[] para evitar problemas de tipo
 }
+
+// Alternativamente, puedes usar una conversión de tipo al recibir los props:
+// export default function ShopsTabContent({ initialShops = [] as Service[] }: ShopsTabContentProps) {
 
 export default function ShopsTabContent({ initialShops = [] }: ShopsTabContentProps) {
   const [shops, setShops] = useState<Service[]>(initialShops)
@@ -123,7 +128,7 @@ export default function ShopsTabContent({ initialShops = [] }: ShopsTabContentPr
             </Button>
           )}
           <Button variant="outline" asChild>
-            <Link href="/map?category=shop">Ver en mapa</Link>
+            <Link href="/map/shop">Ver en mapa</Link>
           </Button>
         </div>
       </div>
@@ -156,7 +161,7 @@ export default function ShopsTabContent({ initialShops = [] }: ShopsTabContentPr
               <p className="text-sm text-muted-foreground flex items-center">
                 <MapPin className="h-3 w-3 mr-1" />
                 {shop.address || "Dirección no disponible"}
-                {shop.distance && <span className="ml-1">• a {shop.distance.toFixed(1)} km</span>}
+                {shop.distance != null && <span className="ml-1">• a {shop.distance.toFixed(1)} km</span>}
               </p>
             </CardHeader>
             <CardContent className="space-y-3">

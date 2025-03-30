@@ -12,7 +12,7 @@ async function getInitialServices() {
   // Obtener servicios para cada categoría
   const petFriendlyPlaces = await prisma.service.findMany({
     where: {
-      subCategory: "pet-friendly",
+      category: "pet-friendly", // Cambiado de subCategory a category
       isActive: true,
     },
     take: 6,
@@ -23,7 +23,7 @@ async function getInitialServices() {
 
   const shops = await prisma.service.findMany({
     where: {
-      subCategory: "shop",
+      category: "shop", // Cambiado de subCategory a category
       isActive: true,
     },
     take: 6,
@@ -34,7 +34,7 @@ async function getInitialServices() {
 
   const vets = await prisma.service.findMany({
     where: {
-      subCategory: "vet",
+      category: "vet", // Cambiado de subCategory a category
       isActive: true,
     },
     take: 6,
@@ -80,6 +80,10 @@ async function getEvents() {
 export default async function ExplorePage() {
   const { petFriendlyPlaces, shops, vets } = await getInitialServices()
   const { totalEvents, upcomingEvents } = await getEvents()
+
+  // Verificar los datos para depuración
+  console.log("Vets count:", vets.length)
+  console.log("First vet (if exists):", vets[0] || "No vets found")
 
   return (
     <div className="container py-6">

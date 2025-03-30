@@ -56,21 +56,6 @@ export function AdminSidebar() {
       icon: <Calendar className="mr-2 h-4 w-4" />,
     },
     {
-      href: "/admin/users",
-      title: "Usuarios",
-      icon: <Users className="mr-2 h-4 w-4" />,
-    },
-    {
-      href: "/admin/team",
-      title: "Equipo",
-      icon: <Users className="mr-2 h-4 w-4" />,
-    },
-    {
-      href: "/admin/pets",
-      title: "Mascotas",
-      icon: <PawPrint className="mr-2 h-4 w-4" />,
-    },
-    {
       href: "/admin/services",
       title: "Servicios",
       icon: <Store className="mr-2 h-4 w-4" />,
@@ -94,67 +79,83 @@ export function AdminSidebar() {
       ],
     },
     {
-      href: "/admin/health",
-      title: "Salud",
-      icon: <Stethoscope className="mr-2 h-4 w-4" />,
-      submenu: [
-        {
-          href: "/admin/health/cards",
-          title: "Tarjetas de Salud",
-        },
-        {
-          href: "/admin/health/vaccinations",
-          title: "Vacunaciones",
-        },
-        {
-          href: "/admin/health/medications",
-          title: "Medicamentos",
-        },
-      ],
+      href: "/admin/users",
+      title: "Usuarios",
+      icon: <Users className="mr-2 h-4 w-4" />,
     },
     {
-      href: "/admin/passports",
-      title: "Pasaportes",
-      icon: <Passport className="mr-2 h-4 w-4" />,
+      href: "/admin/team",
+      title: "Equipo",
+      icon: <Users className="mr-2 h-4 w-4" />,
     },
     {
-      href: "/admin/posts",
-      title: "Publicaciones",
-      icon: <FileText className="mr-2 h-4 w-4" />,
+      href: "/admin/pets",
+      title: "Mascotas",
+      icon: <PawPrint className="mr-2 h-4 w-4" />,
     },
-    {
-      href: "/admin/follows",
-      title: "Seguidores",
-      icon: <Heart className="mr-2 h-4 w-4" />,
-    },
-    {
-      href: "/admin/pages",
-      title: "Páginas",
-      icon: <FileText className="mr-2 h-4 w-4" />,
-      submenu: [
-        {
-          href: "/admin/pages/about",
-          title: "Acerca de",
-        },
-        {
-          href: "/admin/pages/politica-cookies",
-          title: "Política de Cookies",
-        },
-        {
-          href: "/admin/pages/privacy",
-          title: "Privacidad",
-        },
-        {
-          href: "/admin/pages/terms",
-          title: "Términos",
-        },
-      ],
-    },
-    {
-      href: "/admin/messages",
-      title: "Mensajes",
-      icon: <MessageSquare className="mr-2 h-4 w-4" />,
-    },
+   
+    // {
+    //   href: "/admin/health",
+    //   title: "Salud",
+    //   icon: <Stethoscope className="mr-2 h-4 w-4" />,
+    //   submenu: [
+    //     {
+    //       href: "/admin/health/cards",
+    //       title: "Tarjetas de Salud",
+    //     },
+    //     {
+    //       href: "/admin/health/vaccinations",
+    //       title: "Vacunaciones",
+    //     },
+    //     {
+    //       href: "/admin/health/medications",
+    //       title: "Medicamentos",
+    //     },
+    //   ],
+    // },
+    // {
+    //   href: "/admin/passports",
+    //   title: "Pasaportes",
+    //   icon: <Passport className="mr-2 h-4 w-4" />,
+    // },
+    // {
+    //   href: "/admin/posts",
+    //   title: "Publicaciones",
+    //   icon: <FileText className="mr-2 h-4 w-4" />,
+    // },
+    // {
+    //   href: "/admin/follows",
+    //   title: "Seguidores",
+    //   icon: <Heart className="mr-2 h-4 w-4" />,
+    // },
+    // {
+    //   href: "/admin/pages",
+    //   title: "Páginas",
+    //   icon: <FileText className="mr-2 h-4 w-4" />,
+    //   submenu: [
+    //     {
+    //       href: "/admin/pages/about",
+    //       title: "Acerca de",
+    //     },
+    //     {
+    //       href: "/admin/pages/politica-cookies",
+    //       title: "Política de Cookies",
+    //     },
+    //     {
+    //       href: "/admin/pages/privacy",
+    //       title: "Privacidad",
+    //     },
+    //     {
+    //       href: "/admin/pages/terms",
+    //       title: "Términos",
+    //     },
+    //   ],
+    // },
+    // {
+    //   href: "/admin/messages",
+    //   title: "Mensajes",
+    //   icon: <MessageSquare className="mr-2 h-4 w-4" />,
+    // },
     {
       href: "/admin/locations",
       title: "Ubicaciones",
@@ -165,16 +166,16 @@ export function AdminSidebar() {
       title: "Analíticas",
       icon: <BarChart className="mr-2 h-4 w-4" />,
     },
-    {
-      href: "/admin/notifications",
-      title: "Notificaciones",
-      icon: <Bell className="mr-2 h-4 w-4" />,
-    },
-    {
-      href: "/admin/settings",
-      title: "Configuración",
-      icon: <Settings className="mr-2 h-4 w-4" />,
-    },
+    // {
+    //   href: "/admin/notifications",
+    //   title: "Notificaciones",
+    //   icon: <Bell className="mr-2 h-4 w-4" />,
+    // },
+    // {
+    //   href: "/admin/settings",
+    //   title: "Configuración",
+    //   icon: <Settings className="mr-2 h-4 w-4" />,
+    // },
   ]
 
   const handleSignOut = async () => {

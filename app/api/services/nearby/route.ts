@@ -14,6 +14,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return distance
 }
 
+// Modificar la función GET para asegurar que devuelve todos los lugares cuando all=true
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -21,30 +22,20 @@ export async function GET(request: Request) {
     const latStr = searchParams.get("lat")
     const lngStr = searchParams.get("lng")
     const radiusStr = searchParams.get("radius") || "10" // Default 10km
+    const ignoreDistance = searchParams.get("all") === "true" // Nuevo parámetro para ignorar la distancia
 
-    if (!category || !latStr || !lngStr) {
-      return NextResponse.json({ error: "Se requieren los parámetros 'category', 'lat' y 'lng'" }, { status: 400 })
+    if (!category) {
+      return NextResponse.json({ error: "Se requiere el parámetro 'category'" }, { status: 400 })
     }
 
-    const lat = Number.parseFloat(latStr)
-    const lng = Number.parseFloat(lngStr)
-    const radius = Number.parseFloat(radiusStr)
-
-    if (isNaN(lat) || isNaN(lng) || isNaN(radius)) {
-      return NextResponse.json(
-        { error: "Los parámetros 'lat', 'lng' y 'radius' deben ser números válidos" },
-        { status: 400 },
-      )
-    }
+    console.log(`API: Buscando servicios para category=${category}, ignoreDistance=${ignoreDistance}`)
 
     // Obtener todos los servicios de la categoría especificada
     const services = await prisma.service.findMany({
       where: {
-        subCategory: category,
+        category: category,
         isActive: true,
-        // Solo incluir servicios que tengan coordenadas
-        latitude: { not: null },
-        longitude: { not: null },
+        // No filtrar por coordenadas cuando ignoreDistance es true
       },
       select: {
         id: true,
@@ -54,31 +45,74 @@ export async function GET(request: Request) {
         phone: true,
         website: true,
         imageUrl: true,
+        category: true,
         subCategory: true,
         tags: true,
         openingHours: true,
         latitude: true,
         longitude: true,
         rating: true,
+        isActive: true,
       },
     })
 
+    console.log(`API: Encontrados ${services.length} servicios para category=${category}`)
+
+    // Log para depuración
+    if (services.length > 0) {
+      console.log(
+        "Primer servicio:",
+        JSON.stringify(
+          {
+            title: services[0].title,
+            latitude: services[0].latitude,
+            longitude: services[0].longitude,
+          },
+          null,
+          2,
+        ),
+      )
+    }
+
+    // Si estamos ignorando la distancia o no tenemos coordenadas, devolver todos los servicios
+    if (ignoreDistance || !latStr || !lngStr) {
+      return NextResponse.json(services)
+    }
+
+    const lat = Number.parseFloat(latStr)
+    const lng = Number.parseFloat(lngStr)
+    const radius = Number.parseFloat(radiusStr)
+
+    if (isNaN(lat) || isNaN(lng) || isNaN(radius)) {
+      // Si hay un problema con las coordenadas, devolver todos los servicios
+      return NextResponse.json(services)
+    }
+
     // Filtrar y calcular la distancia para cada servicio
-    const nearbyServices = services
-      .filter((service) => {
-        if (!service.latitude || !service.longitude) return false
-
+    const servicesWithDistance = services.map((service) => {
+      if (service.latitude && service.longitude) {
         const distance = calculateDistance(lat, lng, service.latitude, service.longitude)
+        return {
+          ...service,
+          distance, // Añadir la propiedad distance explícitamente
+        }
+      }
+      return {
+        ...service,
+        distance: null, // Asignar null para servicios sin coordenadas
+      }
+    })
 
-        // Añadir la distancia al objeto de servicio
-        ;(service as any).distance = distance
+    // Ordenar por distancia si corresponde
+    const sortedServices = ignoreDistance
+      ? servicesWithDistance
+      : servicesWithDistance
+          .filter((service) => service.distance !== null && service.distance <= radius)
+          .sort((a, b) => (a.distance || Number.POSITIVE_INFINITY) - (b.distance || Number.POSITIVE_INFINITY))
 
-        // Filtrar por radio
-        return distance <= radius
-      })
-      .sort((a, b) => (a as any).distance - (b as any).distance)
+    console.log(`API: Devolviendo ${sortedServices.length} servicios después de procesar distancias`)
 
-    return NextResponse.json(nearbyServices)
+    return NextResponse.json(sortedServices)
   } catch (error) {
     console.error("Error al obtener servicios cercanos:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })

@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     // Obtener lugares pet-friendly
     const petFriendlyPlaces = await prisma.service.findMany({
       where: {
-        subCategory: "pet-friendly",
+        category: "pet-friendly",
         isActive: true,
       },
       orderBy: {
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
         phone: true,
         website: true,
         imageUrl: true,
-        subCategory: true,
+        category: true,
         tags: true,
         openingHours: true,
         latitude: true,

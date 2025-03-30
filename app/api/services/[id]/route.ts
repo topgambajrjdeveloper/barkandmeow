@@ -4,7 +4,7 @@ import { auth } from "@/auth"
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    const id = params.id
+    const { id } = await params
 
     if (!id) {
       return NextResponse.json({ error: "Se requiere un ID válido" }, { status: 400 })
@@ -34,7 +34,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
 
     const userId = session.user.id
-    const id = params.id
+    const { id } = await params
     const data = await request.json()
 
     // Verificar si el servicio existe y pertenece al usuario
@@ -78,7 +78,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     }
 
     const userId = session.user.id
-    const id = params.id
+    const { id } = await params
 
     // Verificar si el servicio existe y pertenece al usuario
     const existingService = await prisma.service.findUnique({

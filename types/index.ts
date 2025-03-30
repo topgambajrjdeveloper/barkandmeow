@@ -351,7 +351,8 @@ export interface Service {
   openingHours?: string | null
   phone?: string | null
   website?: string | null
-  subCategory?: string | null
+  category: string
+  subCategory?: string | null // Actualizado para aceptar null
   tags?: string[]
   rating?: number | null
   featured?: boolean

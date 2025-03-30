@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const servicesPromises = categories.map((category) =>
       prisma.service.findMany({
         where: {
-          subCategory: category,
+          category: category,
           isActive: true,
         },
         take: limit,
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
           phone: true,
           website: true,
           imageUrl: true,
-          subCategory: true,
+          category: true,
           tags: true,
           openingHours: true,
           latitude: true,

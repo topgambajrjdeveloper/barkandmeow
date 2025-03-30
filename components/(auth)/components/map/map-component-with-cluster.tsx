@@ -1,12 +1,15 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import "leaflet.markercluster/dist/leaflet.markercluster.js"
 import "leaflet.markercluster/dist/MarkerCluster.css"
 import "leaflet.markercluster/dist/MarkerCluster.Default.css"
 import type { Service } from "@/types"
+
+// Importar la función getUserLocation del módulo location.ts
+import { getUserLocation } from "@/lib/location"
 
 // Corregir el problema de los iconos de Leaflet en Next.js
 const fixLeafletIcon = () => {
@@ -24,200 +27,325 @@ interface MapComponentProps {
   onMarkerClick?: (place: Service) => void
   center?: [number, number]
   zoom?: number
+  height?: string
 }
 
-export default function MapComponentWithCluster({
-  places,
-  userLocation,
-  onMarkerClick,
-  center,
-  zoom = 13,
-}: MapComponentProps) {
-  const mapRef = useRef<L.Map | null>(null)
-  const mapContainerRef = useRef<HTMLDivElement>(null)
-  const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null)
-  const userMarkerRef = useRef<L.Marker | null>(null)
-  const [mapInitialized, setMapInitialized] = useState(false)
+// Modificar la función MapComponentWithCluster para ajustar el zoom inicial
+const MapComponentWithCluster = forwardRef(
+  (
+    {
+      places,
+      userLocation,
+      onMarkerClick,
+      center,
+      zoom = 6, // Cambiado de 13 a 6 para mostrar más territorio
+      height = "700px",
+    }: MapComponentProps,
+    ref,
+  ) => {
+    const mapRef = useRef<L.Map | null>(null)
+    const mapContainerRef = useRef<HTMLDivElement>(null)
+    const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null)
+    const userMarkerRef = useRef<L.Marker | null>(null)
+    const [mapInitialized, setMapInitialized] = useState(false)
 
-  // Inicializar el mapa
-  useEffect(() => {
-    if (!mapContainerRef.current || mapInitialized) return
+    // Crear un objeto de referencia para los marcadores por ID
+    const markersById = useRef<Record<string, L.Marker>>({})
 
-    fixLeafletIcon()
+    // Exponer métodos a través de la referencia
+    useImperativeHandle(ref, () => ({
+      // Método para centrar el mapa en una ubicación específica
+      flyToLocation: (lat: number, lng: number, place?: Service) => {
+        if (!mapRef.current) return
 
-    // Determinar el centro del mapa
-    const initialCenter =
-      center || (userLocation ? [userLocation.latitude, userLocation.longitude] : [40.416775, -3.70379]) // Madrid como ubicación por defecto
+        console.log(`Centrando mapa en [${lat}, ${lng}]`)
 
-    // Crear el mapa
-    const map = L.map(mapContainerRef.current).setView(initialCenter as [number, number], zoom)
-
-    // Añadir capa de mapa de OpenStreetMap
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19,
-    }).addTo(map)
-
-    // Crear grupo de clusters
-    const clusterGroup = L.markerClusterGroup({
-      showCoverageOnHover: false,
-      maxClusterRadius: 50,
-      iconCreateFunction: (cluster) => {
-        const count = cluster.getChildCount()
-        return L.divIcon({
-          html: `<div class="cluster-icon">${count}</div>`,
-          className: "custom-cluster-icon",
-          iconSize: L.point(40, 40),
+        // Centrar el mapa en la ubicación con animación
+        mapRef.current.flyTo([lat, lng], 15, {
+          animate: true,
+          duration: 1,
         })
+
+        // Si se proporciona un lugar y existe un marcador para él, abrir su popup
+        if (place && place.id && markersById.current[place.id]) {
+          setTimeout(() => {
+            markersById.current[place.id].openPopup()
+          }, 1000) // Esperar a que termine la animación
+        }
       },
-    })
-    map.addLayer(clusterGroup)
-    clusterGroupRef.current = clusterGroup
+    }))
 
-    // Guardar referencia al mapa
-    mapRef.current = map
-    setMapInitialized(true)
+    // Modificar la parte donde se inicializa el mapa
+    useEffect(() => {
+      if (typeof window === "undefined") return // Evitar ejecución en el servidor
 
-    // Añadir estilos CSS para los clusters
-    const style = document.createElement("style")
-    style.textContent = `
-      .custom-cluster-icon {
-        background: none;
+      if (!mapContainerRef.current || mapRef.current) return
+
+      console.log("Inicializando mapa con cluster...")
+      fixLeafletIcon()
+
+      // Función asíncrona para obtener la ubicación y configurar el mapa
+      const initializeMap = async () => {
+        try {
+          // Determinar el centro del mapa
+          let initialCenter: [number, number] = [40.416775, -3.70379] // Valor por defecto (Madrid)
+
+          // Si hay centro especificado o ubicación de usuario, usarlos
+          if (center) {
+            initialCenter = center
+          } else if (userLocation) {
+            initialCenter = [userLocation.latitude, userLocation.longitude]
+          } else {
+            // Intentar obtener la ubicación del usuario usando el módulo location.ts
+            const locationData = await getUserLocation()
+            if (locationData.latitude && locationData.longitude) {
+              initialCenter = [locationData.latitude, locationData.longitude]
+              console.log("Usando ubicación obtenida de location.ts:", initialCenter)
+            } else {
+              console.log("No se pudo obtener ubicación, usando ubicación por defecto")
+            }
+          }
+
+          // Crear el mapa con zoom más bajo para ver más territorio
+          const map = L.map(mapContainerRef.current).setView(initialCenter, zoom)
+
+          // Añadir capa de mapa de OpenStreetMap
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+          }).addTo(map)
+
+          // Crear grupo de clusters
+          const clusterGroup = L.markerClusterGroup({
+            showCoverageOnHover: false,
+            maxClusterRadius: 50,
+            iconCreateFunction: (cluster) => {
+              const count = cluster.getChildCount()
+              return L.divIcon({
+                html: `<div style="width: 40px; height: 40px; background-color: rgba(59, 130, 246, 0.8); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">${count}</div>`,
+                className: "custom-cluster-icon",
+                iconSize: L.point(40, 40),
+              })
+            },
+          })
+
+          map.addLayer(clusterGroup)
+          clusterGroupRef.current = clusterGroup
+
+          // Guardar referencia al mapa
+          mapRef.current = map
+          setMapInitialized(true)
+          console.log("Mapa con cluster inicializado correctamente con centro en:", initialCenter, "y zoom:", zoom)
+
+          // Forzar un redimensionamiento después de la inicialización
+          setTimeout(() => {
+            if (mapRef.current) {
+              mapRef.current.invalidateSize()
+            }
+          }, 100)
+        } catch (error) {
+          console.error("Error al inicializar el mapa con cluster:", error)
+        }
       }
-      .cluster-icon {
-        width: 40px;
-        height: 40px;
-        background-color: rgba(59, 130, 246, 0.8);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: bold;
-        border: 2px solid white;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+
+      // Inicializar el mapa
+      initializeMap()
+
+      // Limpiar al desmontar
+      return () => {
+        if (mapRef.current) {
+          console.log("Limpiando mapa con cluster...")
+          mapRef.current.remove()
+          mapRef.current = null
+          clusterGroupRef.current = null
+          setMapInitialized(false)
+        }
       }
-    `
-    document.head.appendChild(style)
+    }, [center, userLocation, zoom])
 
-    // Limpiar al desmontar
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove()
-        mapRef.current = null
-        clusterGroupRef.current = null
-        setMapInitialized(false)
+    // Modificar la parte donde se actualizan los marcadores para asegurar que se vean
+    useEffect(() => {
+      if (!mapRef.current || !mapInitialized || !clusterGroupRef.current) return
+
+      console.log("Actualizando marcadores en cluster...", places.length)
+
+      // Limpiar marcadores anteriores
+      clusterGroupRef.current.clearLayers()
+      markersById.current = {} // Limpiar el objeto de marcadores por ID
+
+      // Actualizar marcador de ubicación del usuario
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove()
+        userMarkerRef.current = null
       }
-      document.head.removeChild(style)
-    }
-  }, [mapInitialized, center, userLocation, zoom])
 
-  // Actualizar marcadores cuando cambian los lugares o la ubicación del usuario
-  useEffect(() => {
-    if (!mapRef.current || !mapInitialized || !clusterGroupRef.current) return
+      // Añadir marcador de ubicación del usuario
+      if (userLocation && mapRef.current) {
+        const userIcon = L.divIcon({
+          className: "user-location-marker",
+          html: `<div style="width: 16px; height: 16px; background-color: #3b82f6; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [16, 16],
+          iconAnchor: [8, 8],
+        })
 
-    // Limpiar marcadores anteriores
-    clusterGroupRef.current.clearLayers()
+        userMarkerRef.current = L.marker([userLocation.latitude, userLocation.longitude], { icon: userIcon })
+          .addTo(mapRef.current)
+          .bindPopup("Tu ubicación")
+      }
 
-    // Actualizar marcador de ubicación del usuario
-    if (userMarkerRef.current) {
-      userMarkerRef.current.remove()
-      userMarkerRef.current = null
-    }
+      // Añadir marcadores para los lugares
+      const bounds = L.latLngBounds([])
+      let hasValidPlaces = false
 
-    // Añadir marcador de ubicación del usuario
-    if (userLocation) {
-      const userIcon = L.divIcon({
-        className: "user-location-marker",
-        html: `<div class="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-md"></div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
+      places.forEach((place) => {
+        if (place.latitude && place.longitude) {
+          hasValidPlaces = true
+          // Crear un icono personalizado según la categoría
+          let iconColor = "#000000" // Negro por defecto para pet-friendly
+          let iconText = "P"
+
+          if (place.category === "shop" || place.subCategory === "shop") {
+            iconColor = "#f97316" // Naranja para tiendas
+            iconText = "S"
+          } else if (place.category === "vet" || place.subCategory === "vet") {
+            iconColor = "#22c55e" // Verde para veterinarias
+            iconText = "V"
+          }
+
+          console.log(`Creando marcador para ${place.title} en [${place.latitude}, ${place.longitude}]`)
+
+          const customIcon = L.divIcon({
+            className: "custom-div-icon", // Usar un nombre de clase en lugar de cadena vacía
+            html: `
+<div style="
+  width: 30px; 
+  height: 30px; 
+  background-color: ${iconColor}; 
+  color: white; 
+  border-radius: 50%; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  font-size: 14px; 
+  font-weight: bold;
+  border: 2px solid white;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+">${iconText}</div>
+`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+            popupAnchor: [0, -15],
+          })
+
+          const marker = L.marker([place.latitude, place.longitude], { icon: customIcon }).bindPopup(`
+          <div>
+            <h3 style="font-weight: bold; margin-bottom: 5px;">${place.title}</h3>
+            <p style="margin: 5px 0;">${place.address || "Sin dirección"}</p>
+            ${place.distance != null ? `<p style="margin: 5px 0;">A ${place.distance.toFixed(1)} km</p>` : ""}
+            ${place.openingHours ? `<p style="margin: 5px 0;">Horario: ${place.openingHours}</p>` : ""}
+            <div style="margin-top: 10px;">
+              <a href="https://www.openstreetmap.org/directions?from=&to=${place.latitude}%2C${place.longitude}" 
+                 target="_blank" rel="noopener noreferrer" 
+                 style="color: #3b82f6; text-decoration: none; font-weight: bold;">
+                Cómo llegar
+              </a>
+            </div>
+          </div>
+        `)
+
+          marker.on("click", () => {
+            if (onMarkerClick) {
+              onMarkerClick(place)
+            }
+          })
+
+          // Añadir al grupo de clusters
+          clusterGroupRef.current!.addLayer(marker)
+
+          // Guardar referencia al marcador por ID
+          if (place.id) {
+            markersById.current[place.id] = marker
+          }
+
+          bounds.extend([place.latitude, place.longitude])
+        }
       })
 
-      userMarkerRef.current = L.marker([userLocation.latitude, userLocation.longitude], { icon: userIcon })
-        .addTo(mapRef.current)
-        .bindPopup("Tu ubicación")
-    }
+      // Añadir ubicación del usuario a los límites si está disponible
+      if (userLocation) {
+        bounds.extend([userLocation.latitude, userLocation.longitude])
+      }
 
-    // Añadir marcadores para los lugares
-    const bounds = L.latLngBounds([])
+      // Ajustar el mapa para mostrar todos los marcadores
+      if (bounds.isValid() && hasValidPlaces) {
+        console.log("Ajustando mapa a los límites de los marcadores")
+        mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 })
+      } else if (!hasValidPlaces) {
+        // Si no hay lugares válidos, intentar usar la ubicación del usuario o la ubicación por defecto
+        console.log("No hay lugares válidos, intentando centrar en la ubicación del usuario")
 
-    places.forEach((place) => {
-      if (place.latitude && place.longitude) {
-        // Crear un icono personalizado según la categoría
-        let iconHtml = `<div class="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">P</div>`
+        // Función asíncrona para centrar el mapa
+        const centerMap = async () => {
+          try {
+            // Si ya tenemos userLocation, usarlo
+            if (userLocation) {
+              mapRef.current.setView([userLocation.latitude, userLocation.longitude], 12)
+              return
+            }
 
-        if (place.subCategory === "shop") {
-          iconHtml = `<div class="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold">S</div>`
-        } else if (place.subCategory === "vet") {
-          iconHtml = `<div class="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">V</div>`
+            // Intentar obtener la ubicación del usuario
+            const locationData = await getUserLocation()
+            if (locationData.latitude && locationData.longitude) {
+              console.log("Centrando mapa en ubicación obtenida:", [locationData.latitude, locationData.longitude])
+              mapRef.current.setView([locationData.latitude, locationData.longitude], 12)
+            } else {
+              // Si no se puede obtener la ubicación, usar Madrid como fallback
+              console.log("No se pudo obtener ubicación, centrando en España")
+              mapRef.current.setView([40.416775, -3.70379], 6)
+            }
+          } catch (error) {
+            console.error("Error al centrar el mapa:", error)
+            // En caso de error, usar Madrid como fallback
+            mapRef.current.setView([40.416775, -3.70379], 6)
+          }
         }
 
-        const customIcon = L.divIcon({
-          className: "custom-marker",
-          html: iconHtml,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
-          popupAnchor: [0, -12],
-        })
-
-        const marker = L.marker([place.latitude, place.longitude], { icon: customIcon }).bindPopup(`
-            <div>
-              <h3 class="font-bold">${place.title}</h3>
-              <p>${place.address || "Sin dirección"}</p>
-              ${place.distance ? `<p>A ${place.distance.toFixed(1)} km</p>` : ""}
-              ${place.openingHours ? `<p>Horario: ${place.openingHours}</p>` : ""}
-              <div class="mt-2">
-                <a href="https://www.openstreetmap.org/directions?from=&to=${place.latitude}%2C${place.longitude}" 
-                   target="_blank" rel="noopener noreferrer" 
-                   class="text-blue-500 hover:underline">
-                  Cómo llegar
-                </a>
-              </div>
-            </div>
-          `)
-
-        marker.on("click", () => {
-          if (onMarkerClick) {
-            onMarkerClick(place)
-          }
-        })
-
-        // Añadir al grupo de clusters
-        clusterGroupRef.current!.addLayer(marker)
-        bounds.extend([place.latitude, place.longitude])
+        centerMap()
       }
-    })
 
-    // Añadir ubicación del usuario a los límites si está disponible
-    if (userLocation) {
-      bounds.extend([userLocation.latitude, userLocation.longitude])
-    }
+      // Forzar un redimensionamiento después de actualizar marcadores
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.invalidateSize()
+        }
+      }, 100)
+    }, [places, userLocation, mapInitialized, onMarkerClick])
 
-    // Ajustar el mapa para mostrar todos los marcadores
-    if (bounds.isValid()) {
-      mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 })
-    }
-  }, [places, userLocation, mapInitialized, onMarkerClick])
-
-  return (
-    <div className="relative">
-      <div ref={mapContainerRef} className="h-[500px] w-full rounded-lg border" />
-      <div className="absolute bottom-2 left-2 bg-white p-2 rounded shadow-md text-xs">
-        <div className="flex items-center mb-1">
-          <div className="w-3 h-3 rounded-full bg-primary mr-1"></div>
-          <span>Pet-Friendly</span>
-        </div>
-        <div className="flex items-center mb-1">
-          <div className="w-3 h-3 rounded-full bg-orange-500 mr-1"></div>
-          <span>Tiendas</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
-          <span>Veterinarias</span>
+    return (
+      <div className="relative w-full" style={{ height }}>
+        <div ref={mapContainerRef} className="absolute inset-0 rounded-lg border" />
+        <div className="absolute bottom-4 left-4 bg-background p-3 rounded-md shadow-md text-xs z-[500]">
+          <div className="flex items-center mb-2">
+            <div className="w-4 h-4 rounded-full bg-black mr-2"></div>
+            <span>Pet-Friendly</span>
+          </div>
+          <div className="flex items-center mb-2">
+            <div className="w-4 h-4 rounded-full bg-orange-500 mr-2"></div>
+            <span>Tiendas</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
+            <span>Veterinarias</span>
+          </div>
         </div>
       </div>
-    </div>
-  )
-}
+    )
+  },
+)
+
+// Al final del archivo, después de la definición del componente pero antes de la exportación, añadir:
+MapComponentWithCluster.displayName = "MapComponentWithCluster"
+
+// Exportar el componente con nombre para facilitar la depuración
+export default MapComponentWithCluster
 

@@ -113,7 +113,7 @@ export default function EventsTabContent({ totalEvents, initialEvents = [] }: Ev
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Eventos Próximos</h2>
         <Button variant="outline" asChild>
-          <Link href="/events">Ver todos ({totalEvents})</Link>
+          <Link href="/explore/events">Ver todos</Link>
         </Button>
       </div>
 
@@ -159,7 +159,7 @@ export default function EventsTabContent({ totalEvents, initialEvents = [] }: Ev
               <p className="text-sm line-clamp-2">{event.description}</p>
               <div className="mt-4">
                 <Button variant="outline" size="sm" asChild className="w-full">
-                  <Link href={`/events/${event.id}`}>Ver detalles</Link>
+                  <Link href={`/explore/events/${event.id}`}>Ver detalles</Link>
                 </Button>
               </div>
             </CardContent>

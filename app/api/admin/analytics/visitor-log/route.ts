@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prismadb"
-import { getUserLocation } from "@/lib/location"
-import { cookies } from "next/headers"
 import { v4 as uuidv4 } from "uuid"
 
 // Función para detectar el tipo de dispositivo
@@ -19,22 +17,17 @@ export async function POST(request: Request) {
     const { referrer, path } = await request.json()
 
     // Obtener o crear ID de visitante usando cookies
-    const cookieStore = cookies()
-    let visitorId = cookieStore.get("visitor_id")?.value
-
-    if (!visitorId) {
-      visitorId = uuidv4()
-      // La cookie se establecerá en el cliente
-    }
+    const visitorId =
+      request.headers
+        .get("cookie")
+        ?.match(/visitor_id=([^;]+)/)
+        ?.at(1) || uuidv4()
 
     // Obtener información del user agent
     const userAgent = request.headers.get("user-agent") || ""
     const deviceType = detectDeviceType(userAgent)
 
-    // Obtener ubicación del visitante
-    const locationData = await getUserLocation()
-
-    // Crear registro de visita
+    // Crear registro de visita - sin esperar a la geolocalización para hacerlo más rápido
     const visitorLog = await prisma.visitorLog.create({
       data: {
         visitorId,
@@ -42,13 +35,38 @@ export async function POST(request: Request) {
         referrer: referrer || "direct",
         userAgent,
         deviceType,
-        city: locationData.city || null,
-        country: locationData.country || null,
-        latitude: locationData.latitude || null,
-        longitude: locationData.longitude || null,
         date: new Date().toISOString().split("T")[0], // Formato YYYY-MM-DD
       },
     })
+
+    // Intentar obtener la ubicación en segundo plano
+    try {
+      // Importar dinámicamente para evitar problemas de SSR
+      const { getUserLocation } = await import("@/lib/location")
+
+      // Obtener ubicación sin bloquear la respuesta
+      getUserLocation()
+        .then(async (locationData) => {
+          if (locationData.city || locationData.country || locationData.latitude) {
+            // Actualizar el registro con la información de ubicación
+            await prisma.visitorLog
+              .update({
+                where: { id: visitorLog.id },
+                data: {
+                  city: locationData.city || null,
+                  country: locationData.country || null,
+                  latitude: locationData.latitude || null,
+                  longitude: locationData.longitude || null,
+                },
+              })
+              .catch((e) => console.error("Error updating visitor location:", e))
+          }
+        })
+        .catch((e) => console.error("Error getting location:", e))
+    } catch (locationError) {
+      // Ignorar errores de ubicación, no son críticos
+      console.error("Non-critical location error:", locationError)
+    }
 
     return NextResponse.json({
       success: true,

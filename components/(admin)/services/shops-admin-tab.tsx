@@ -89,7 +89,8 @@ export default function ShopsAdminTab({ initialShops }: ShopsAdminTabProps) {
         },
         body: JSON.stringify({
           ...formData,
-          subCategory: "shop",
+          category: "shop",
+          subCategory: "shop", // Mantener para compatibilidad
         }),
       })
 
