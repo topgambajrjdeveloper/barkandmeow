@@ -144,7 +144,7 @@ export default async function PetProfilePage({ params }: { params: { id: string 
             </p>
           )}
 
-          {pet.bio && <p className="mt-4 text-center">{pet.bio}</p>}
+          {pet?.bio && <p className="mt-4 text-center">{pet?.bio}</p>}
 
           <div className="mt-4 flex items-center gap-2">
             <p className="text-sm">Dueño:</p>

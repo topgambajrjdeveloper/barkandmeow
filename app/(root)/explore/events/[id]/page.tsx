@@ -68,7 +68,7 @@ export default async function EventPage({ params }: { params: { id: string } }) 
     <div className="container mx-auto py-8 px-4">
       <div className="mb-6">
         <Button variant="outline" size="sm" asChild>
-          <Link href="/explore/events">
+          <Link href="/explore?category=events">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver a eventos
           </Link>

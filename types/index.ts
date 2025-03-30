@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Interfaces para insignias
 export interface Badge {
   id: string
@@ -297,11 +298,11 @@ export interface Event {
   updatedAt: string
   userId: string
   isPublished: boolean
-  distance: number
+  distance?: number // Hacer distance opcional añadiendo el signo ?
   // Relaciones
   createdBy?: User
   attendees?: User[]
-  
+
   // Contadores
   _count: {
     attendees: number

@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 interface Profile {
   id: string
   username: string
-  profileImage: string | null
+  profileImage?: string | null
   petName: string
   petType: string
   isFollowing: boolean

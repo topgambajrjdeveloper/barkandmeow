@@ -35,6 +35,11 @@ export const metadata: Metadata = {
     "red social",
     "cuidado de mascotas",
     "veterinarios",
+    "Red social para mascotas",
+    "Comunidad para dueños de perros",
+    "Aplicación para amantes de los animales",
+    "Conectar con dueños de gatos",
+    "Servicios pet-friendly cerca de mí",
   ],
   authors: [{ name: "BarkAndMeow Team" }],
   creator: "BarkAndMeow",
@@ -44,7 +49,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL("https://barkandmeow-latest.onrender.com"),
+  metadataBase: new URL("https://barkandmeow.app"),
   alternates: {
     canonical: "/",
   },
@@ -52,7 +57,7 @@ export const metadata: Metadata = {
     title: "BarkAndMeow - Red Social para Mascotas",
     description:
       "Conecta con otros dueños de mascotas, comparte momentos especiales y encuentra servicios para tus compañeros peludos.",
-    url: "https://barkandmeow-latest.onrender.com",
+    url: "https://barkandmeow.app",
     siteName: "BarkAndMeow",
     images: [
       {
@@ -71,7 +76,7 @@ export const metadata: Metadata = {
     description:
       "Conecta con otros dueños de mascotas, comparte momentos especiales y encuentra servicios para tus compañeros peludos.",
     images: ["/twitter-image.jpg"],
-    creator: "@barkandmeow",
+    creator: "@BarkandmeowApp",
   },
   robots: {
     index: true,
@@ -104,7 +109,7 @@ export const metadata: Metadata = {
   },
   manifest: "/site.webmanifest",
   verification: {
-    google: "google-site-verification=tu-codigo-de-verificacion",
+    google: `${process.env.VERIFICATION_GOOGLE_PROPERTY}`,
   },
   category: "social",
 };
