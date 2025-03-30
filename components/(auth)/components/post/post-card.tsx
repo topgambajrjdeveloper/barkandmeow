@@ -163,7 +163,7 @@ export default function PostCard({ post, currentUserId, showActions = true, onDe
   }, [isOwner, onDelete, post.id, router])
 
   return (
-    <Card className="border-background/1 border-4">
+    <Card className="border-background/1 border-2">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">

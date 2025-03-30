@@ -77,7 +77,7 @@ export function Header() {
 
               <div className="flex items-center space-x-2">
                 <ThemeToggle />
-                <LanguageToggle />
+                {/* <LanguageToggle /> */}
                 {user ? (
                   <>
                     <Link href={`/profile/${userId}`}>

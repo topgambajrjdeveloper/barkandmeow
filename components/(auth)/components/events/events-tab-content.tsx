@@ -1,255 +1,180 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Calendar, MapPin, Clock } from "lucide-react"
+import { toast } from "sonner"
 import Image from "next/image"
+import Link from "next/link"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { Calendar, MapPin, Users, ArrowRight, Filter } from "lucide-react"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { toast } from "sonner"
-import type { Event } from "@/types"
 
-type EventsTabContentProps = {
-  totalEvents?: number
+interface Event {
+  id: string
+  title: string
+  description: string
+  location: string
+  date: Date
+  endDate: Date | null
+  imageUrl: string | null
+  latitude: number | null
+  longitude: number | null
+  isPublished: boolean
 }
 
-export default function EventsTabContent({ totalEvents = 0 }: EventsTabContentProps) {
-  const [events, setEvents] = useState<Event[]>([])
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+interface EventsTabContentProps {
+  totalEvents: number
+  initialEvents?: Event[]
+}
 
-  // Filtros
-  const [currentFilter, setCurrentFilter] = useState("all")
+export default function EventsTabContent({ totalEvents, initialEvents = [] }: EventsTabContentProps) {
+  const [events, setEvents] = useState<Event[]>(initialEvents)
+  const [isLoading, setIsLoading] = useState(initialEvents.length === 0)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(initialEvents.length < totalEvents)
 
-  // Cargar eventos al montar el componente
   useEffect(() => {
-    fetchEvents()
+    if (initialEvents.length === 0) {
+      fetchEvents()
+    }
   }, [])
 
-  // Aplicar filtros cuando cambian
-  useEffect(() => {
-    applyFilters()
-  }, [events, currentFilter])
-
-  // Función para obtener eventos
-  const fetchEvents = async () => {
+  const fetchEvents = async (pageToFetch = 1) => {
     setIsLoading(true)
     try {
-      const response = await fetch("/api/events")
-      if (response.ok) {
-        const data = await response.json()
-        setEvents(data.events || [])
-      } else {
-        console.error("Error fetching events:", await response.text())
-        toast.error("Error al cargar los eventos")
+      const response = await fetch(`/api/events?page=${pageToFetch}&limit=6`)
+
+      if (!response.ok) {
+        throw new Error(`Error fetching events: ${response.status}`)
       }
+
+      const data = await response.json()
+
+      if (pageToFetch === 1) {
+        setEvents(data.events)
+      } else {
+        setEvents((prev) => [...prev, ...data.events])
+      }
+
+      setHasMore(data.events.length === 6 && events.length + data.events.length < totalEvents)
+      setPage(pageToFetch)
     } catch (error) {
-      console.error("Error:", error)
-      toast.error("Error al cargar los eventos")
+      console.error("Error fetching events:", error)
+      toast.error("No se pudieron cargar los eventos")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Función para aplicar filtros
-  const applyFilters = () => {
-    if (!events.length) return
-
-    let filtered = [...events]
-
-    // Filtrar por fecha
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    if (currentFilter === "upcoming") {
-      filtered = filtered.filter((event) => new Date(event.date) >= today)
-    } else if (currentFilter === "past") {
-      filtered = filtered.filter((event) => new Date(event.date) < today)
+  const loadMore = () => {
+    if (!isLoading && hasMore) {
+      fetchEvents(page + 1)
     }
+  }
 
-    // Ordenar por fecha
-    filtered = filtered.sort((a, b) =>
-      currentFilter === "past"
-        ? new Date(b.date).getTime() - new Date(a.date).getTime()
-        : new Date(a.date).getTime() - new Date(b.date).getTime(),
+  if (isLoading && events.length === 0) {
+    return (
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <Card key={i} className="overflow-hidden">
+            <div className="h-48 relative">
+              <Skeleton className="h-full w-full" />
+            </div>
+            <CardHeader>
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-1/2 mt-2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-3/4" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     )
-
-    setFilteredEvents(filtered)
   }
 
-  // Función para cambiar el filtro de fecha
-  const handleFilterChange = (value: string) => {
-    setCurrentFilter(value)
-  }
-
-  // Función para resetear los filtros
-  const resetFilters = () => {
-    setCurrentFilter("all")
+  if (events.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-xl font-semibold mb-2">No hay eventos próximos</h2>
+        <p className="text-muted-foreground mb-6">No se encontraron eventos programados para las próximas fechas.</p>
+        <Button asChild>
+          <Link href="/events/create">Crear un evento</Link>
+        </Button>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-xl font-semibold">Eventos para Mascotas</h2>
-          <p className="text-sm text-muted-foreground">
-            {isLoading
-              ? "Cargando eventos..."
-              : `Mostrando ${filteredEvents.length} de ${totalEvents || events.length} eventos disponibles`}
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                Filtros
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Filtrar Eventos</SheetTitle>
-                <SheetDescription>Personaliza los eventos que quieres ver</SheetDescription>
-              </SheetHeader>
-
-              <div className="py-6 space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Fecha</h3>
-                  <Tabs value={currentFilter} onValueChange={handleFilterChange} className="w-full">
-                    <TabsList className="grid grid-cols-3 w-full">
-                      <TabsTrigger value="all">Todos</TabsTrigger>
-                      <TabsTrigger value="upcoming">Próximos</TabsTrigger>
-                      <TabsTrigger value="past">Pasados</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
-
-                <Button variant="outline" className="w-full" onClick={resetFilters}>
-                  Resetear filtros
-                </Button>
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Eventos Próximos</h2>
+        <Button variant="outline" asChild>
+          <Link href="/events">Ver todos ({totalEvents})</Link>
+        </Button>
       </div>
 
-      {isLoading ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="overflow-hidden">
-              <div className="aspect-video">
-                <Skeleton className="h-full w-full" />
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {events.map((event) => (
+          <Card key={event.id} className="overflow-hidden">
+            <div className="h-48 relative">
+              <Image
+                src={event.imageUrl || "/placeholder.svg?height=200&width=400"}
+                alt={event.title}
+                fill
+                className="object-cover"
+              />
+            </div>
+            <CardHeader>
+              <CardTitle className="line-clamp-1">{event.title}</CardTitle>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4 mr-1" />
+                <time dateTime={new Date(event.date).toISOString()}>
+                  {format(new Date(event.date), "d 'de' MMMM, yyyy", { locale: es })}
+                </time>
               </div>
-              <CardHeader>
-                <Skeleton className="h-6 w-40" />
-                <div className="space-y-2 mt-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-4 w-24" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-3/4" />
-              </CardContent>
-              <CardFooter>
-                <Skeleton className="h-9 w-full" />
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      ) : filteredEvents.length === 0 ? (
-        <div className="text-center py-8">
-          <div className="mb-4">
-            <p>No se encontraron eventos que coincidan con los filtros.</p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {currentFilter !== "all" && (
-              <Button variant="outline" onClick={resetFilters}>
-                Ver todos los eventos
-              </Button>
-            )}
-            <Button asChild>
-              <Link href="/events/create">Crear un evento</Link>
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredEvents.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Clock className="h-4 w-4 mr-1" />
+                <time dateTime={new Date(event.date).toISOString()}>
+                  {format(new Date(event.date), "HH:mm", { locale: es })}
+                </time>
+                {event.endDate && (
+                  <>
+                    <span className="mx-1">-</span>
+                    <time dateTime={new Date(event.endDate).toISOString()}>
+                      {format(new Date(event.endDate), "HH:mm", { locale: es })}
+                    </time>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4 mr-1" />
+                <span>{event.location}</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm line-clamp-2">{event.description}</p>
+              <div className="mt-4">
+                <Button variant="outline" size="sm" asChild className="w-full">
+                  <Link href={`/events/${event.id}`}>Ver detalles</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {hasMore && (
+        <div className="flex justify-center">
+          <Button onClick={loadMore} disabled={isLoading}>
+            {isLoading ? "Cargando..." : "Cargar más eventos"}
+          </Button>
         </div>
       )}
     </div>
-  )
-}
-
-function EventCard({ event }: { event: Event & { distance?: number } }) {
-  const eventDate = new Date(event.date)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  const isToday = today.toDateString() === eventDate.toDateString()
-  const isTomorrow = new Date(today.setDate(today.getDate() + 1)).toDateString() === eventDate.toDateString()
-  const isPast = eventDate < new Date(new Date().setHours(0, 0, 0, 0))
-
-  let dateLabel = format(eventDate, "PPP", { locale: es })
-  if (isToday) dateLabel = "Hoy, " + format(eventDate, "p", { locale: es })
-  if (isTomorrow) dateLabel = "Mañana, " + format(eventDate, "p", { locale: es })
-
-  return (
-    <Card className={`overflow-hidden flex flex-col h-full ${isPast ? "opacity-75" : ""}`}>
-      <div className="relative h-48 w-full">
-        <Image
-          src={event.imageUrl || "/placeholder.svg?height=200&width=400"}
-          alt={event.title}
-          fill
-          className={`object-cover ${isPast ? "grayscale" : ""}`}
-        />
-        {isToday && <Badge className="absolute top-2 right-2 bg-secondary text-secondary-foreground">Hoy</Badge>}
-        {isPast && <Badge className="absolute top-2 right-2 bg-muted text-muted-foreground">Finalizado</Badge>}
-        {event.distance !== undefined && (
-          <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground">
-            {event.distance.toFixed(1)} km
-          </Badge>
-        )}
-      </div>
-      <CardHeader>
-        <CardTitle className="line-clamp-2">{event.title}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-grow">
-        <div className="space-y-3">
-          <div className="flex items-center text-sm">
-            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span>{dateLabel}</span>
-          </div>
-          <div className="flex items-center text-sm">
-            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span className="line-clamp-1">{event.location}</span>
-          </div>
-          <div className="flex items-center text-sm">
-            <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span>{event._count?.attendees || 0} asistentes</span>
-          </div>
-          <p className="text-sm text-muted-foreground line-clamp-3 mt-2">{event.description}</p>
-        </div>
-      </CardContent>
-      <CardFooter className="pt-0">
-        <Button asChild variant="outline" className="w-full">
-          <Link href={`/explore/events/${event.id}`}>
-            Ver detalles
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </CardFooter>
-    </Card>
   )
 }
 

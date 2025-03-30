@@ -343,16 +343,25 @@ export interface EventAttendanceStatus {
 export interface Service {
   id: string
   title: string
-  description: string
-  category: string
-  latitude: number
-  longitude: number
-  distance: number
+  description?: string | null
+  address?: string | null
+  latitude?: number | null
+  longitude?: number | null
   imageUrl?: string | null
-  location: {
-    latitude: number
-    longitude: number
-  }
+  openingHours?: string | null
+  phone?: string | null
+  website?: string | null
+  subCategory?: string | null
+  tags?: string[]
+  rating?: number | null
+  featured?: boolean
+  isActive?: boolean
+  isOnline?: boolean
+  createdBy?: string
+  createdAt?: Date
+  updatedAt?: Date
+  metadata?: any
+  distance?: number // Distancia en km desde la ubicación del usuario
 }
 
 export interface UserWithPets {

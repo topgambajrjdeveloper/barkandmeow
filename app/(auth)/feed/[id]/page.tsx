@@ -46,7 +46,7 @@ export default async function PostPage({ params }: { params: { id: string } }) {
         ) : (
           <div className="space-y-4">
             {post.comments.map((comment) => (
-              <div key={comment.id} className="flex items-start gap-3 p-3 bg-white rounded-lg shadow-sm">
+              <div key={comment.id} className="flex items-start gap-3 p-3 bg-background rounded-lg shadow-sm border-2">
                 <Link href={`/user/${comment.user.username}`}>
                   <div className="relative h-8 w-8 rounded-full overflow-hidden">
                     <Image

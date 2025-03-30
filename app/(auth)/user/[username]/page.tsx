@@ -95,7 +95,7 @@ export default async function UserProfilePage({ params }: { params: { username: 
     redirect("/login")
   }
 
-  const { username } = params
+  const { username } = await params
   const decodedUsername = decodeURIComponent(username)
   const user = await getUserByUsername(decodedUsername)
 

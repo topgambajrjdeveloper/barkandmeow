@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import prisma from "@/lib/prismadb"
 
-// GET - Obtener todos los eventos
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -10,6 +9,8 @@ export async function GET(request: Request) {
     const limit = Number.parseInt(searchParams.get("limit") || "10")
     const page = Number.parseInt(searchParams.get("page") || "1")
     const skip = (page - 1) * limit
+
+    console.log("Fetching events with params:", { upcoming, limit, page, skip })
 
     // Filtros para eventos próximos
     const where = upcoming
@@ -38,6 +39,8 @@ export async function GET(request: Request) {
       },
     })
 
+    console.log(`Found ${events.length} events`)
+
     const total = await prisma.event.count({ where })
 
     return NextResponse.json({
@@ -51,7 +54,7 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error("[EVENTS_GET]", error)
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+    return NextResponse.json({ error: "Error interno del servidor", details: error.message }, { status: 500 })
   }
 }
 
@@ -93,4 +96,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
-

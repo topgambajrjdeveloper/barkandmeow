@@ -25,6 +25,7 @@ import {
   Heart,
   Stethoscope,
   StampIcon as Passport,
+  Store,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 
@@ -68,6 +69,29 @@ export function AdminSidebar() {
       href: "/admin/pets",
       title: "Mascotas",
       icon: <PawPrint className="mr-2 h-4 w-4" />,
+    },
+    {
+      href: "/admin/services",
+      title: "Servicios",
+      icon: <Store className="mr-2 h-4 w-4" />,
+      submenu: [
+        {
+          href: "/admin/services",
+          title: "Todos los servicios",
+        },
+        {
+          href: "/admin/services?tab=vets",
+          title: "Veterinarias",
+        },
+        {
+          href: "/admin/services?tab=shops",
+          title: "Tiendas",
+        },
+        {
+          href: "/admin/services?tab=pet-friendly",
+          title: "Pet-Friendly",
+        },
+      ],
     },
     {
       href: "/admin/health",

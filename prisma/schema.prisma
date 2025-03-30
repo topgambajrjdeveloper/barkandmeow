@@ -17,6 +17,7 @@ datasource db {
 enum UserRole {
   USER
   ADMIN
+  CREATOR
 }
 
 model User {
@@ -381,4 +382,31 @@ model Event {
   
   @@index([userId])
   @@index([date])
+}
+
+model Service {
+  id           String    @id @default(cuid())
+  title        String
+  description  String
+  address      String?
+  latitude     Float?
+  longitude    Float?
+  imageUrl     String?
+  openingHours String?
+  phone        String?
+  website      String?
+  category     String    // "pet-friendly", "shops", "vets"
+  subCategory  String?   // Para categorías específicas dentro de cada tipo
+  tags         String[]  // Etiquetas para filtrado
+  rating       Float?    // Calificación promedio
+  featured     Boolean   @default(false)
+  isActive     Boolean   @default(true)
+  isOnline     Boolean   @default(false) // Para tiendas online
+  createdBy    String    // ID del usuario administrador que lo creó
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  metadata     Json?     // Para almacenar datos adicionales como bookingUrl
+
+  @@index([category])
+  @@index([createdBy])
 }

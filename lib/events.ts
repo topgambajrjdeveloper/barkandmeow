@@ -3,6 +3,8 @@ import prisma from "@/lib/prismadb"
 // Obtener eventos próximos
 export async function getUpcomingEvents(limit = 3) {
   try {
+    console.log(`Fetching ${limit} upcoming events`)
+
     const events = await prisma.event.findMany({
       where: {
         date: { gte: new Date() },
@@ -17,6 +19,7 @@ export async function getUpcomingEvents(limit = 3) {
       },
     })
 
+    console.log(`Found ${events.length} upcoming events`)
     return { events }
   } catch (error) {
     console.error("Error fetching upcoming events:", error)

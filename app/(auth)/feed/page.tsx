@@ -1,23 +1,18 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import prisma from "@/lib/prismadb";
-import Link from "next/link";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import { getFeedPosts } from "@/lib/posts";
-import { MobileNavigation } from "@/components/(root)/ui/MobileNavigation";
-import CreatePost from "@/components/(auth)/components/post/create-post";
-import PostCard from "@/components/(auth)/components/post/post-card";
-import { EventsCard } from "@/components/(auth)/components/events/events-card";
-import { Facebook, Instagram, Twitter } from "lucide-react";
+import { auth } from "@/auth"
+import { redirect } from "next/navigation"
+import prisma from "@/lib/prismadb"
+import Link from "next/link"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { getFeedPosts } from "@/lib/posts"
+import { MobileNavigation } from "@/components/(root)/ui/MobileNavigation"
+import CreatePost from "@/components/(auth)/components/post/create-post"
+
+import { Suspense } from "react"
+import PostFeed from "@/components/(auth)/components/post/post-feed"
+import { Facebook, Instagram, Twitter } from "lucide-react"
+import { EventsCard } from "@/components/(auth)/components/events/events-card"
 
 async function getPopularPets() {
   const pets = await prisma.pet.findMany({
@@ -26,14 +21,12 @@ async function getPopularPets() {
         select: { followers: true },
       },
     },
-  });
+  })
 
   // Sort pets by follower count and take the top 5
-  const popularPets = pets
-    .sort((a, b) => b._count.followers - a._count.followers)
-    .slice(0, 5);
+  const popularPets = pets.sort((a, b) => b._count.followers - a._count.followers).slice(0, 5)
 
-  return popularPets;
+  return popularPets
 }
 
 async function getUserWithPets(userId: string) {
@@ -52,29 +45,28 @@ async function getUserWithPets(userId: string) {
         },
       },
     },
-  });
+  })
 
-  return user;
+  return user
 }
 
 export default async function Feed() {
-  const session = await auth();
+  const session = await auth()
 
   if (!session) {
-    redirect("/login");
+    redirect("/login")
   }
 
-  const userId = session?.user?.id;
+  const userId = session?.user?.id
 
   // Add a check to ensure userId is defined
   if (!userId) {
-    redirect("/login"); // Redirect if userId is undefined
+    redirect("/login") // Redirect if userId is undefined
   }
 
-  const popularPets = await getPopularPets();
-  const { posts } = await getFeedPosts(10);
-  // Now TypeScript knows userId is definitely a string
-  const user = await getUserWithPets(userId);
+  const popularPets = await getPopularPets()
+  const initialPostsData = await getFeedPosts(5) // Cargar solo los primeros 5 posts inicialmente
+  const user = await getUserWithPets(userId)
 
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-3 max-w-screen-sm mx-auto md:max-w-none md:mx-0 pb-20 md:pb-0">
@@ -84,9 +76,13 @@ export default async function Feed() {
           <CreatePost user={user!} userPets={user?.pets || []} />
         </div>
 
-        {posts.map((post) => (
-          <PostCard key={post.id} post={post} currentUserId={userId} />
-        ))}
+        <Suspense fallback={<div className="space-y-6">Cargando publicaciones...</div>}>
+          <PostFeed
+            initialPosts={initialPostsData.posts}
+            initialNextCursor={initialPostsData.nextCursor}
+            userId={userId}
+          />
+        </Suspense>
       </div>
       <div className="hidden md:block space-y-6">
         <PopularPetsCard pets={popularPets} />
@@ -97,7 +93,7 @@ export default async function Feed() {
       {/* Navegación móvil */}
       <MobileNavigation />
     </div>
-  );
+  )
 }
 
 function PopularPetsCard({ pets }: { pets: any[] }) {
@@ -123,7 +119,7 @@ function PopularPetsCard({ pets }: { pets: any[] }) {
         </Link>
       </CardFooter>
     </Card>
-  );
+  )
 }
 
 function PagesCard() {
@@ -158,8 +154,9 @@ function PagesCard() {
             <h4 className="font-medium">Términos y Condiciones</h4>
           </Link>
         </div>
+        <div className="text-center text-lg font-semibold">Nuestras redes sociales</div>
         <div className="flex justify-center space-x-4">
-          <Link href="#" target="_blank">
+          <Link href="https://www.facebook.com/" target="_blank">
             {" "}
             <Facebook className="h-6 w-6 text-sm text-primary" />{" "}
           </Link>
@@ -167,7 +164,7 @@ function PagesCard() {
             <svg
               aria-label="Threads"
               className="h-6 w-6 text-sm text-primary"
-              fill="currentColor"             
+              fill="currentColor"
               role="img"
               viewBox="0 0 192 192"
               xmlns="http://www.w3.org/2000/svg"
@@ -186,7 +183,7 @@ function PagesCard() {
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 function PetSuggestion({
@@ -195,10 +192,10 @@ function PetSuggestion({
   image,
   followers,
 }: {
-  name: string;
-  type: string;
-  image: string;
-  followers: number;
+  name: string
+  type: string
+  image: string
+  followers: number
 }) {
   return (
     <div className="flex items-center justify-between">
@@ -216,5 +213,6 @@ function PetSuggestion({
         Seguir
       </Button>
     </div>
-  );
+  )
 }
+

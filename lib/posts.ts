@@ -1,5 +1,6 @@
 import prisma from "@/lib/prismadb"
 
+
 export async function getPostById(id: string) {
   try {
     const post = await prisma.post.findUnique({

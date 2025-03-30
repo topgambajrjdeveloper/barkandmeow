@@ -289,7 +289,7 @@ export default function CreatePost({ user, userPets, onPostCreated }: CreatePost
   }
 
   return (
-    <Card className="border-background/1 border-4">
+    <Card className="border-background/1 border-2">
       <CardHeader className="pb-3">
         <div className="flex items-center space-x-4">
           <Avatar>
