@@ -1,74 +1,175 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
-import { notFound } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useParams, notFound } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { format } from "date-fns"
+import { format, isToday, addDays, isSameDay } from "date-fns"
 import { es } from "date-fns/locale"
-import { Calendar, MapPin, Users, ArrowLeft, Share2 } from "lucide-react"
+import { Calendar, MapPin, Users, ArrowLeft, Loader2, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import prisma from "@/lib/prismadb"
-import { auth } from "@/auth"
-import { AttendEventButton } from "@/components/(auth)/components/events/attend-event-button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
+import type { Event } from "@/types"
+import { ShareContent } from "@/components/(root)/share-content"
 
-async function getEvent(id: string) {
-  try {
-    const event = await prisma.event.findUnique({
-      where: { id },
-      include: {
-        createdBy: {
-          select: {
-            id: true,
-            username: true,
-            profileImage: true,
-          },
-        },
-        attendees: {
-          select: {
-            id: true,
-            username: true,
-            profileImage: true,
-          },
-        },
-        _count: {
-          select: { attendees: true },
-        },
-      },
-    })
-
-    return event
-  } catch (error) {
-    console.error("Error fetching event:", error)
-    return null
+interface EventWithDetails extends Event {
+  createdBy: {
+    id: string
+    username: string
+    profileImage: string | null
+  }
+  attendees: {
+    id: string
+    username: string
+    profileImage: string | null
+  }[]
+  _count: {
+    attendees: number
   }
 }
 
-export default async function EventPage({ params }: { params: { id: string } }) {
-  const session = await auth()
-  const event = await getEvent(params.id)
+export default function EventPage() {
+  const params = useParams()
+  const eventId = params.id as string
+
+  const [event, setEvent] = useState<EventWithDetails | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAttending, setIsAttending] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [mapError, setMapError] = useState(false)
+
+  // Obtener detalles del evento
+  useEffect(() => {
+    const fetchEvent = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch(`/api/events/${eventId}`)
+        if (!response.ok) {
+          throw new Error("Error al cargar el evento")
+        }
+        const data = await response.json()
+        setEvent(data)
+
+        // Verificar si el usuario está autenticado
+        const authResponse = await fetch("/api/auth/session")
+        if (authResponse.ok) {
+          const authData = await authResponse.json()
+          if (authData.user) {
+            setIsAuthenticated(true)
+            setUserId(authData.user.id)
+
+            // Verificar si el usuario está asistiendo
+            if (data.attendees.some((attendee: any) => attendee.id === authData.user.id)) {
+              setIsAttending(true)
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error:", error)
+        toast.error("No se pudo cargar el evento")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (eventId) {
+      fetchEvent()
+    }
+  }, [eventId])
+
+  // Manejar asistencia al evento
+  const handleAttendEvent = async () => {
+    if (!isAuthenticated) {
+      window.location.href = `/login?callbackUrl=/explore/events/${eventId}`
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const response = await fetch(`/api/events/${eventId}/attend`, {
+        method: isAttending ? "DELETE" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Error al actualizar asistencia")
+      }
+
+      // Actualizar estado local
+      setIsAttending(!isAttending)
+
+      // Actualizar conteo de asistentes
+      if (event) {
+        setEvent({
+          ...event,
+          _count: {
+            ...event._count,
+            attendees: isAttending ? event._count.attendees - 1 : event._count.attendees + 1,
+          },
+          attendees: isAttending
+            ? event.attendees.filter((attendee) => attendee.id !== userId)
+            : [...event.attendees, { id: userId!, username: "Tú", profileImage: null }],
+        })
+      }
+
+      toast.success(isAttending ? "Ya no asistirás a este evento" : "¡Asistirás a este evento!")
+    } catch (error) {
+      console.error("Error:", error)
+      toast.error("No se pudo actualizar la asistencia")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (isLoading) {
+    return <EventSkeleton />
+  }
 
   if (!event) {
     notFound()
   }
 
   const eventDate = new Date(event.date)
-  const isToday = new Date().toDateString() === eventDate.toDateString()
-  const isTomorrow = new Date(new Date().setDate(new Date().getDate() + 1)).toDateString() === eventDate.toDateString()
+  const isTodayEvent = isToday(eventDate)
+  const isTomorrowEvent = isSameDay(addDays(new Date(), 1), eventDate)
 
   let dateLabel = format(eventDate, "PPP", { locale: es })
-  if (isToday) dateLabel = "Hoy, " + format(eventDate, "p", { locale: es })
-  if (isTomorrow) dateLabel = "Mañana, " + format(eventDate, "p", { locale: es })
+  if (isTodayEvent) dateLabel = "Hoy, " + format(eventDate, "p", { locale: es })
+  if (isTomorrowEvent) dateLabel = "Mañana, " + format(eventDate, "p", { locale: es })
 
-  const isAttending = session?.user?.id ? event.attendees.some((attendee) => attendee.id === session.user.id) : false
+  // Generar URL de OpenStreetMap para la ubicación
+  const openStreetMapUrl =
+    event.latitude && event.longitude
+      ? `https://www.openstreetmap.org/?mlat=${event.latitude}&mlon=${event.longitude}&zoom=15`
+      : null
+
+  // Generar URL de imagen estática de OpenStreetMap
+  const staticMapUrl =
+    event.latitude && event.longitude
+      ? `https://maps.geoapify.com/v1/staticmap?style=osm-carto&width=600&height=300&center=lonlat:${event.longitude},${event.latitude}&zoom=15&marker=lonlat:${event.longitude},${event.latitude};color:%23ff0000;size:medium&apiKey=YOUR_GEOAPIFY_API_KEY`
+      : null
+
+  // URL alternativa usando OpenStreetMap Tile Server (sin API key)
+  const fallbackMapUrl =
+    event.latitude && event.longitude
+      ? `https://www.openstreetmap.org/export/embed.html?bbox=${event.longitude - 0.01}%2C${event.latitude - 0.01}%2C${event.longitude + 0.01}%2C${event.latitude + 0.01}&layer=mapnik&marker=${event.latitude}%2C${event.longitude}`
+      : null
 
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-6">
         <Button variant="outline" size="sm" asChild>
-          <Link href="/explore?category=events">
+          <Link href="/explore/events">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver a eventos
           </Link>
@@ -84,7 +185,9 @@ export default async function EventPage({ params }: { params: { id: string } }) 
               fill
               className="object-cover"
             />
-            {isToday && <Badge className="absolute top-4 right-4 bg-secondary text-secondary-foreground">Hoy</Badge>}
+            {isTodayEvent && (
+              <Badge className="absolute top-4 right-4 bg-secondary text-secondary-foreground">Hoy</Badge>
+            )}
           </div>
 
           <div>
@@ -161,30 +264,29 @@ export default async function EventPage({ params }: { params: { id: string } }) 
               <CardTitle>Acciones</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {session?.user ? (
-                <AttendEventButton eventId={event.id} isAttending={isAttending} />
+              {isAuthenticated ? (
+                <Button
+                  className="w-full"
+                  variant={isAttending ? "outline" : "default"}
+                  onClick={handleAttendEvent}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isAttending ? "No asistiré" : "Asistiré"}
+                </Button>
               ) : (
                 <Button asChild className="w-full">
-                  <Link href={`/login?callbackUrl=/events/${event.id}`}>Inicia sesión para asistir</Link>
+                  <Link href={`/login?callbackUrl=/explore/events/${eventId}`}>Inicia sesión para asistir</Link>
                 </Button>
               )}
 
-              <Button
-                variant="outline"
+              <ShareContent
                 className="w-full"
-                onClick={() => {
-                  navigator
-                    .share({
-                      title: event.title,
-                      text: `Echa un vistazo a este evento: ${event.title}`,
-                      url: window.location.href,
-                    })
-                    .catch((err) => console.error("Error compartiendo:", err))
-                }}
-              >
-                <Share2 className="mr-2 h-4 w-4" />
-                Compartir
-              </Button>
+                title={event.title}
+                description={event.description}
+                url={window.location.href}
+                image={event.imageUrl || ""}
+              />
             </CardContent>
           </Card>
 
@@ -195,25 +297,109 @@ export default async function EventPage({ params }: { params: { id: string } }) 
               </CardHeader>
               <CardContent>
                 <div className="aspect-video relative rounded-md overflow-hidden">
-                  <Image
-                    src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+f00(${event.longitude},${event.latitude})/${event.longitude},${event.latitude},14,0/600x300?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
-                    alt="Mapa de ubicación"
-                    fill
-                    className="object-cover"
-                  />
+                  {/* Usar iframe para mostrar el mapa de OpenStreetMap */}
+                  {fallbackMapUrl && (
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      scrolling="no"
+                      marginHeight={0}
+                      marginWidth={0}
+                      src={fallbackMapUrl}
+                      style={{ border: 0, position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+                      title="Mapa de ubicación"
+                    ></iframe>
+                  )}
                 </div>
-                <Button variant="outline" className="w-full mt-4" asChild>
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Ver en Google Maps
-                  </a>
-                </Button>
+                <div className="flex flex-col gap-2 mt-4">
+                  {openStreetMapUrl && (
+                    <Button variant="outline" className="w-full" asChild>
+                      <a href={openStreetMapUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Ver en OpenStreetMap
+                      </a>
+                    </Button>
+                  )}
+                  {event.latitude && event.longitude && (
+                    <Button variant="outline" className="w-full" asChild>
+                      <a
+                        href={`https://www.openstreetmap.org/directions?from=&to=${event.latitude}%2C${event.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <MapPin className="mr-2 h-4 w-4" />
+                        Cómo llegar
+                      </a>
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EventSkeleton() {
+  return (
+    <div className="container mx-auto py-8 px-4">
+      <div className="mb-6">
+        <Skeleton className="h-9 w-32" />
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        <div className="md:col-span-2 space-y-6">
+          <Skeleton className="h-64 md:h-96 w-full rounded-lg" />
+
+          <div>
+            <Skeleton className="h-10 w-3/4 mb-4" />
+            <div className="flex flex-wrap gap-4">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-6 w-32" />
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-3/4" />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div>
+                  <Skeleton className="h-5 w-32 mb-1" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

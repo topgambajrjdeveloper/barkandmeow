@@ -291,19 +291,19 @@ export interface Event {
   location: string
   latitude?: number | null
   longitude?: number | null
-  date: string
-  endDate?: string | null
+  date: string | Date
+  endDate?: string | Date | null
   imageUrl?: string | null
-  createdAt: string
-  updatedAt: string
+  createdAt: string | Date
+  updatedAt: string | Date
   userId: string
   isPublished: boolean
-  distance?: number // Hacer distance opcional añadiendo el signo ?
-  // Relaciones
-  createdBy?: User
-  attendees?: User[]
-
-  // Contadores
+  distance?: number // Para eventos cercanos
+  createdBy?: {
+    id: string
+    username: string
+    profileImage: string | null
+  }
   _count: {
     attendees: number
   }
@@ -345,7 +345,10 @@ export interface Service {
   title: string
   description: string
   category: string
+  latitude: number
+  longitude: number
   distance: number
+  imageUrl?: string | null
   location: {
     latitude: number
     longitude: number

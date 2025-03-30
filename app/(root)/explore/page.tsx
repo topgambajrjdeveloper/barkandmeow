@@ -3,19 +3,16 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { StoreIcon as Shop, Stethoscope, Coffee, Calendar, Users, MapPin, ArrowRight } from "lucide-react"
-import Link from "next/link"
+import { StoreIcon as Shop, Stethoscope, Coffee, Calendar, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getUserLocation, type LocationData } from "@/lib/location"
 import { Slider } from "@/components/ui/slider"
-import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
 
 import type { Event, Service } from "@/types"
+import { getActiveCategoryFromUrl } from "@/lib/explore-helpers"
+import EventsTabContent from "@/components/(auth)/components/events/events-tab-content"
 
 // Categories for the explore page
 const categories = [
@@ -50,19 +47,19 @@ export default function ExplorePage() {
   const [isLocating, setIsLocating] = useState(false)
   const [services, setServices] = useState<Service[]>([])
   const [events, setEvents] = useState<Event[]>([])
+  const [totalEvents, setTotalEvents] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(true)
-  const [activeCategory, setActiveCategory] = useState(() => {
-    // Solo ejecutar en el cliente
-    if (typeof window !== "undefined") {
-      const searchParams = new URLSearchParams(window.location.search)
-      const categoryParam = searchParams.get("category")
-      if (categoryParam && categories.some((cat) => cat.id === categoryParam)) {
-        return categoryParam
-      }
-    }
-    return "all"
-  })
+  // Inicializar con "all" para evitar problemas de hidratación
+  const [activeCategory, setActiveCategory] = useState("all")
   const [radius, setRadius] = useState(5) // Radio de búsqueda en km
+
+  // Sincronizar la categoría activa con la URL al cargar la página (solo en el cliente)
+  useEffect(() => {
+    const categoryFromUrl = getActiveCategoryFromUrl()
+    if (categoryFromUrl) {
+      setActiveCategory(categoryFromUrl)
+    }
+  }, [])
 
   // Función para cambiar la categoría activa y actualizar la URL
   const handleCategoryChange = (categoryId: string) => {
@@ -73,6 +70,19 @@ export default function ExplorePage() {
     url.searchParams.set("category", categoryId)
     window.history.pushState({}, "", url)
   }
+
+  // Obtener el número total de eventos
+  const fetchTotalEvents = useCallback(async () => {
+    try {
+      const response = await fetch("/api/events")
+      if (response.ok) {
+        const data = await response.json()
+        setTotalEvents(data.pagination?.total || data.events.length || 0)
+      }
+    } catch (error) {
+      console.error("Error fetching total events:", error)
+    }
+  }, [])
 
   // Obtener datos cercanos (servicios y eventos)
   const fetchNearbyData = useCallback(
@@ -110,7 +120,7 @@ export default function ExplorePage() {
             if (allEventsResponse.ok) {
               const data = await allEventsResponse.json()
               // Añadir una distancia simulada para cada evento
-              eventsData = data.events.map((event: any) => ({
+              eventsData = data.events.map((event: Event) => ({
                 ...event,
                 distance: Math.random() * radius, // Distancia aleatoria dentro del radio
               }))
@@ -136,10 +146,12 @@ export default function ExplorePage() {
   const getLocation = useCallback(async () => {
     setIsLocating(true)
     try {
-      const locationData = await getUserLocation()
-      setUserLocation(locationData)
+      // Usar tu implementación existente
+      const locationData = await getUserLocation(true) // Solicitar con alta precisión
 
-      if (locationData.latitude && locationData.longitude) {
+      // Verificar si se obtuvo una ubicación válida
+      if (locationData && locationData.latitude && locationData.longitude) {
+        setUserLocation(locationData)
         fetchNearbyData(locationData)
       } else {
         toast.error("No pudimos determinar tu ubicación exacta")
@@ -154,10 +166,11 @@ export default function ExplorePage() {
     }
   }, [fetchNearbyData])
 
-  // Solicitar ubicación al cargar la página
+  // Solicitar ubicación al cargar la página y obtener el total de eventos
   useEffect(() => {
+    fetchTotalEvents()
     getLocation()
-  }, [getLocation])
+  }, [getLocation, fetchTotalEvents])
 
   // Actualizar datos cuando cambia el radio
   useEffect(() => {
@@ -199,12 +212,18 @@ export default function ExplorePage() {
         </div>
       </div>
 
-      {userLocation && (
+      {userLocation && userLocation.latitude && (
         <div className="mb-6 space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
               Radio de búsqueda: <span className="font-medium">{radius} km</span>
             </p>
+            {userLocation.source && (
+              <p className="text-xs text-muted-foreground">
+                Fuente: {userLocation.source === "gps" ? "GPS" : userLocation.source === "ip" ? "IP" : "Desconocida"}
+                {userLocation.accuracy && ` (precisión: ~${(userLocation.accuracy / 1000).toFixed(1)} km)`}
+              </p>
+            )}
           </div>
           <Slider
             value={[radius]}
@@ -217,7 +236,7 @@ export default function ExplorePage() {
         </div>
       )}
 
-      <Tabs value={activeCategory} defaultValue="all" className="w-full" onValueChange={handleCategoryChange}>
+      <Tabs defaultValue="all" value={activeCategory} className="w-full" onValueChange={handleCategoryChange}>
         <div className="overflow-x-auto pb-3 mb-3 scrollbar-hide">
           <TabsList className="lg:w-full md:w-max inline-flex">
             <TabsTrigger value="all">Todos</TabsTrigger>
@@ -254,7 +273,7 @@ export default function ExplorePage() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {categories.map((category) => (
-                <Card key={category.id} className="hover:bg-accent transition-colors h-full">
+                <Card key={category.id} className="h-full">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       {category.icon}
@@ -263,7 +282,16 @@ export default function ExplorePage() {
                   </CardHeader>
                   <CardContent>
                     <CardDescription>{category.description}</CardDescription>
-                    {category.id === "events" && <p className="text-sm mt-2">{events?.length} eventos próximos</p>}
+                    {category.id === "events" && (
+                      <p className="text-sm mt-2">
+                        {totalEvents} eventos en total
+                        {events.length > 0 && (
+                          <span className="ml-1">
+                            ({events.length} {events.length === 1 ? "cercano" : "cercanos"})
+                          </span>
+                        )}
+                      </p>
+                    )}
                     {category.id !== "events" && (
                       <p className="text-sm mt-2">
                         {services.filter((s) => s.category === category.id).length} servicios cercanos
@@ -282,108 +310,7 @@ export default function ExplorePage() {
         </TabsContent>
 
         <TabsContent value="events">
-          {!userLocation || !userLocation.latitude ? (
-            <div className="text-center py-8">
-              <p className="mb-4">Necesitamos tu ubicación para mostrarte eventos cercanos</p>
-              <Button onClick={getLocation} disabled={isLocating}>
-                {isLocating ? "Obteniendo ubicación..." : "Compartir mi ubicación"}
-              </Button>
-            </div>
-          ) : isLoading ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="overflow-hidden">
-                  <div className="aspect-video">
-                    <Skeleton className="h-full w-full" />
-                  </div>
-                  <CardHeader>
-                    <Skeleton className="h-6 w-40" />
-                    <div className="space-y-2 mt-2">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-4 w-24" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-3/4" />
-                  </CardContent>
-                  <CardFooter>
-                    <Skeleton className="h-9 w-full" />
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          ) : events.length === 0 ? (
-            <div className="text-center py-8">
-              <p>No se encontraron eventos cercanos. Intenta aumentar el radio de búsqueda.</p>
-              <Button asChild className="mt-4">
-                <Link href="/explore/events">Ver todos los eventos</Link>
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">Eventos cercanos</h2>
-                <Button asChild variant="outline">
-                  <Link href="/explore/events">
-                    Ver todos los eventos
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {events.map((event) => (
-                  <Card key={event.id} className="overflow-hidden flex flex-col h-full">
-                    <div className="relative h-48 w-full">
-                      <Image
-                        src={event.imageUrl || "/placeholder.svg?height=200&width=400"}
-                        alt={event.title}
-                        fill
-                        className="object-cover"
-                      />
-                      {new Date().toDateString() === new Date(event.date).toDateString() && (
-                        <Badge className="absolute top-2 right-2 bg-secondary text-secondary-foreground">Hoy</Badge>
-                      )}
-                    </div>
-                    <CardHeader>
-                      <CardTitle className="line-clamp-2">{event.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-grow">
-                      <div className="space-y-3">
-                        <div className="flex items-center text-sm">
-                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span>{format(new Date(event.date), "PPP", { locale: es })}</span>
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span className="line-clamp-1">{event.location}</span>
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span>{event._count?.attendees || 0} asistentes</span>
-                        </div>
-                        {event.distance !== undefined && (
-                          <div className="flex items-center text-sm">
-                            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>A {event.distance.toFixed(1)} km de ti</span>
-                          </div>
-                        )}
-                        <p className="text-sm text-muted-foreground line-clamp-3 mt-2">{event.description}</p>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="pt-0">
-                      <Button asChild variant="outline" className="w-full">
-                        <Link href={`/events/${event.id}`}>
-                          Ver detalles
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            </>
-          )}
+          <EventsTabContent totalEvents={totalEvents} />
         </TabsContent>
 
         {categories
@@ -400,7 +327,7 @@ export default function ExplorePage() {
               ) : isLoading ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {[1, 2, 3].map((i) => (
-                    <Card key={i} className="overflow-hidden">
+                    <Card key={`skeleton-${i}`} className="overflow-hidden">
                       <CardHeader>
                         <Skeleton className="h-6 w-40" />
                       </CardHeader>

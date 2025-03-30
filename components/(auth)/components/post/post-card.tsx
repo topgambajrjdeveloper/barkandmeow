@@ -8,13 +8,14 @@ import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Heart, MessageCircle, Share2, MoreHorizontal, Hash } from "lucide-react"
+import { Heart, MessageCircle, MoreHorizontal, Hash } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import Image from "next/image"
 import { toast } from "sonner"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ShareContent } from "@/components/(root)/share-content"
 
 // Modificar la función processContent para validar hashtags antes de crear enlaces
 export function processContent(content: string) {
@@ -77,8 +78,6 @@ interface PostCardProps {
   showActions?: boolean
   onDelete?: () => void
 }
-
-
 
 export default function PostCard({ post, currentUserId, showActions = true, onDelete }: PostCardProps) {
   const router = useRouter()
@@ -292,9 +291,17 @@ export default function PostCard({ post, currentUserId, showActions = true, onDe
               </Button>
             </Link>
 
-            <Button variant="ghost" size="sm" className="gap-1">
-              <Share2 className="h-4 w-4" />
-            </Button>
+            {/* Reemplazar el botón de compartir con el componente ShareContent */}
+            <ShareContent
+              variant="ghost"
+              size="sm"
+              showLabel={false}
+              title={`Publicación de ${post.user.username}`}
+              description={post.content || ""}
+              url={typeof window !== "undefined" ? `${window.location.origin}/feed/${post.id}` : `/feed/${post.id}`}
+              image={post.imageUrl || ""}
+              className="gap-1"
+            />
           </div>
         </CardFooter>
       )}

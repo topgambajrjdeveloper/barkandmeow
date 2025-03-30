@@ -5,22 +5,24 @@ import Link from "next/link"
 import Image from "next/image"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { Calendar, MapPin, Users, Filter } from "lucide-react"
+import { Calendar, MapPin, Users, ArrowRight, Filter } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { toast } from "sonner"
 import type { Event } from "@/types"
-import { ShareContent } from "@/components/(root)/share-content"
 
-export default function EventsPage() {
+type EventsTabContentProps = {
+  totalEvents?: number
+}
+
+export default function EventsTabContent({ totalEvents = 0 }: EventsTabContentProps) {
   const [events, setEvents] = useState<Event[]>([])
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [totalEvents, setTotalEvents] = useState(0)
 
   // Filtros
   const [currentFilter, setCurrentFilter] = useState("all")
@@ -43,7 +45,6 @@ export default function EventsPage() {
       if (response.ok) {
         const data = await response.json()
         setEvents(data.events || [])
-        setTotalEvents(data.pagination?.total || data.events.length || 0)
       } else {
         console.error("Error fetching events:", await response.text())
         toast.error("Error al cargar los eventos")
@@ -93,20 +94,21 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Eventos para Mascotas</h1>
-          <p className="text-muted-foreground mt-2">
+          <h2 className="text-xl font-semibold">Eventos para Mascotas</h2>
+          <p className="text-sm text-muted-foreground">
             {isLoading
               ? "Cargando eventos..."
-              : `Mostrando ${filteredEvents.length} de ${totalEvents} eventos disponibles`}
+              : `Mostrando ${filteredEvents.length} de ${totalEvents || events.length} eventos disponibles`}
           </p>
         </div>
-        <div className="flex gap-2 mt-4 md:mt-0">
+
+        <div className="flex gap-2">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />
                 Filtros
               </Button>
@@ -135,7 +137,6 @@ export default function EventsPage() {
               </div>
             </SheetContent>
           </Sheet>
-
         </div>
       </div>
 
@@ -164,11 +165,10 @@ export default function EventsPage() {
           ))}
         </div>
       ) : filteredEvents.length === 0 ? (
-        <div className="text-center py-12">
-          <h2 className="text-xl font-semibold mb-2">No hay eventos disponibles</h2>
-          <p className="text-muted-foreground mb-6">
-            No se encontraron eventos que coincidan con los criterios de búsqueda.
-          </p>
+        <div className="text-center py-8">
+          <div className="mb-4">
+            <p>No se encontraron eventos que coincidan con los filtros.</p>
+          </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {currentFilter !== "all" && (
               <Button variant="outline" onClick={resetFilters}>
@@ -242,13 +242,12 @@ function EventCard({ event }: { event: Event & { distance?: number } }) {
         </div>
       </CardContent>
       <CardFooter className="pt-0">
-        <ShareContent
-          className="w-full"
-          title={event.title}
-          description={event.description}
-          url={`${window.location.origin}/events/${event.id}`}
-          image={event.imageUrl || ""}
-        />
+        <Button asChild variant="outline" className="w-full">
+          <Link href={`/explore/events/${event.id}`}>
+            Ver detalles
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
       </CardFooter>
     </Card>
   )

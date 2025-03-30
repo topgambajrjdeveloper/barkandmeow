@@ -32,6 +32,13 @@ export async function GET(request: Request) {
         isPublished: true,
       },
       include: {
+        createdBy: {
+          select: {
+            id: true,
+            username: true,
+            profileImage: true,
+          },
+        },
         _count: {
           select: { attendees: true },
         },

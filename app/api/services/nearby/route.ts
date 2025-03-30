@@ -50,22 +50,7 @@ const sampleServices = [
     category: "pet-friendly",
     location: { latitude: 40.414775, longitude: -3.73379 },
   },
-
-  // Eventos
-  {
-    id: "event1",
-    title: "Feria de Adopción",
-    description: "Encuentra a tu compañero perfecto en nuestra feria de adopción",
-    category: "events",
-    location: { latitude: 40.419775, longitude: -3.67379 },
-  },
-  {
-    id: "event2",
-    title: "Carrera Canina Benéfica",
-    description: "Participa con tu perro en esta carrera solidaria",
-    category: "events",
-    location: { latitude: 40.413775, longitude: -3.74379 },
-  },
+  
 
   // Quedadas
   {
