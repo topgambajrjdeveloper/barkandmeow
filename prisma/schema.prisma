@@ -410,3 +410,24 @@ model Service {
   @@index([category])
   @@index([createdBy])
 }
+
+
+model VisitorLog {
+  id          String    @id @default(cuid())
+  visitorId   String
+  path        String
+  referrer    String?
+  userAgent   String?
+  deviceType  String?
+  city        String?
+  country     String?
+  latitude    Float?
+  longitude   Float?
+  date        String    // Formato YYYY-MM-DD para facilitar agrupaciones
+  createdAt   DateTime  @default(now())
+
+  @@index([visitorId])
+  @@index([date])
+  @@index([country])
+  @@index([deviceType])
+}
