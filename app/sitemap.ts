@@ -8,7 +8,7 @@ function getLastModified(date?: Date): string {
 
 // Función principal que genera el sitemap
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
+  const baseUrl = 'https://barkandmeow.app';
 
   // Rutas estáticas (páginas que siempre existen)
   const staticRoutes = [

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { toast } from "sonner"
-import { LogOut } from "lucide-react"
+import { LogOut, Edit } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -18,7 +18,6 @@ import { UserBadges } from "@/components/(auth)/components/profile/user-badges"
 import { PremiumBadge } from "@/components/(auth)/components/profile/premium-badge"
 import PostCard from "@/components/(auth)/components/post/post-card" // Importar tu componente PostCard existente
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-
 
 export default function ProfilePage() {
   const { user, loading } = useUser()
@@ -49,7 +48,16 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       try {
         const userId = params.id || "me"
-        const response = await fetch(`/api/user/profile/${userId}`)
+        console.log("Intentando cargar perfil para:", userId)
+
+        // Intentar primero con la ruta actualizada
+        let response = await fetch(`/api/profile/${userId}`)
+
+        // Si la ruta actualizada falla, intentar con la ruta original
+        if (!response.ok) {
+          console.log("La ruta actualizada falló, intentando con la ruta original")
+          response = await fetch(`/api/user/profile/${userId}`)
+        }
 
         if (response.ok) {
           const data = await response.json()
@@ -163,6 +171,36 @@ export default function ProfilePage() {
 
   const isOwnProfile = user?.id === profile.id
 
+  // Verificar si hay mascotas disponibles (ya sea en el array pets o como campos directos)
+  const hasPets = (profile.pets && profile.pets.length > 0) || profile.petName
+
+  // Si hay una mascota directa en el perfil pero no en el array, crearla como objeto Pet
+  const petsToDisplay = [...(profile.pets || [])]
+
+  // Añadir la mascota directa al array si existe y no está ya incluida
+  if (profile.petName && !petsToDisplay.some((p) => p.name === profile.petName)) {
+    petsToDisplay.push({
+      id: "direct-pet", // ID temporal
+      name: profile.petName,
+      type: profile.petType || "No especificado",
+      breed: "No especificado",
+      image: profile.petImage || null,
+      age: null,
+      userId: profile.id,
+      description: null,
+      createdAt: "",
+      user: {
+        id: "",
+        username: "",
+        email: "",
+        profileImage: null,
+      },
+      _count: {
+        followers: 0,
+      },
+    })
+  }
+
   return (
     <div className="flex min-h-screen flex-col pb-20 md:pb-0">
       <section className="flex-1">
@@ -202,7 +240,7 @@ export default function ProfilePage() {
                 </div>
               </div>
               <p className="text-muted-foreground">
-                {profile?.bio} - {profile?.petName}
+                {profile?.bio} {profile?.petName && `- ${profile.petName}`}
               </p>
               <div className="flex justify-center gap-2 sm:justify-start">
                 {isOwnProfile ? (
@@ -211,7 +249,7 @@ export default function ProfilePage() {
                       <Button>Editar perfil</Button>
                     </Link>
                     <Link href="/pets/add">
-                      <Button variant="outline">Añadir mascota</Button>
+                      <Button variant="outline">Añadir otra mascota</Button>
                     </Link>
                     {/* Botón de cerrar sesión solo visible en móvil y cuando es el propio perfil */}
                     {isMobile && (
@@ -247,15 +285,15 @@ export default function ProfilePage() {
             {/* Pets Tab */}
             <TabsContent value="pets" className="mt-6">
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {profile.pets && profile.pets.length > 0 ? (
-                  profile.pets.map((pet) => <PetCard key={pet.id} pet={pet} />)
+                {petsToDisplay.length > 0 ? (
+                  petsToDisplay.map((pet) => <PetCard key={pet.id} pet={pet} isOwnProfile={isOwnProfile} />)
                 ) : (
                   <p>No hay mascotas para mostrar.</p>
                 )}
                 {isOwnProfile && (
-                  <Card className="flex items-center justify-center">
+                  <Card className="flex items-center justify-center p-6">
                     <Link href="/pets/add">
-                      <Button>Añadir Mascota</Button>
+                      <Button>Añadir otra mascota</Button>
                     </Link>
                   </Card>
                 )}
@@ -323,31 +361,45 @@ export default function ProfilePage() {
   )
 }
 
-function PetCard({ pet }: { pet: Pet }) {
+function PetCard({ pet, isOwnProfile }: { pet: Pet; isOwnProfile: boolean }) {
   return (
     <Card>
       <CardHeader className="p-0">
-        <Image
-          priority
-          src={pet.image || "/placeholder.svg?height=300&width=300"}
-          alt={pet.name}
-          width={350}
-          height={200}
-          className="rounded-lg "
-        />
+        <div className="relative w-full h-48">
+          <Image
+            priority
+            src={pet.image || "/placeholder.svg?height=300&width=300"}
+            alt={pet.name}
+            fill
+            className="rounded-t-lg object-cover"
+          />
+        </div>
       </CardHeader>
       <CardContent className="p-4">
         <CardTitle>{pet.name}</CardTitle>
         <CardDescription>
-          {pet.type} • {pet.breed} • {pet.age ? `${pet.age} años` : "Edad no disponible"}
+          {pet.type} {pet.breed && `• ${pet.breed}`} {pet.age && `• ${pet.age} años`}
         </CardDescription>
       </CardContent>
-      <CardFooter className="p-4 pt-0">
-        <Link href={`/pets/${pet.id}`}>
-          <Button variant="outline" className="w-full">
-            Ver perfil
+      <CardFooter className="p-4 pt-0 flex flex-col gap-2">
+        {pet.id !== "direct-pet" ? (
+          <Link href={`/pets/${pet.id}`} className="w-full">
+            <Button variant="outline" className="w-full">
+              Ver perfil
+            </Button>
+          </Link>
+        ) : isOwnProfile ? (
+          <Link href="/pets/complete-profile" className="w-full">
+            <Button variant="default" className="w-full flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              Completar perfil de mascota
+            </Button>
+          </Link>
+        ) : (
+          <Button variant="outline" className="w-full" disabled>
+            Mascota básica
           </Button>
-        </Link>
+        )}
       </CardFooter>
     </Card>
   )

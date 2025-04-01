@@ -28,7 +28,7 @@ export default async function Image() {
       {/* Aquí puedes usar una imagen de fondo o tu logo */}
       <div style={{ display: "flex", alignItems: "center", marginBottom: 24 }}>
         <img
-          src={`${process.env.NEXT_PUBLIC_APP_URL || "https://barkandmeow-latest.onrender.com"}/BarkAndMeow.png`}
+          src={`${process.env.NEXT_PUBLIC_APP_URL || "https://barkandmeow.app"}/BarkAndMeow.png`}
           width={120}
           height={120}
           alt="Logo"

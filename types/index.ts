@@ -1,5 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Interfaces para insignias
+export interface RegisterInput {
+  username: string
+  email: string
+  password: string
+  profileImage: File | null
+  petName: string
+  petType: string
+  petImage: File | null
+  isPublicProfile: boolean
+  location: string
+}
+
 export interface Badge {
   id: string
   name: string

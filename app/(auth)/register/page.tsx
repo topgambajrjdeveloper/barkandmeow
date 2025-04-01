@@ -5,8 +5,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
 import { RegisterForm } from "@/components/(auth)/components/register-form";
+
 
 export default function RegisterPage() {
   return (

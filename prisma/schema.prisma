@@ -28,9 +28,9 @@ model User {
   role                 UserRole
   password             String
   profileImage         String?
-  petName              String
-  petType              String
-  petImage             String?
+  // petName              String
+  // petType              String
+  // petImage             String?
   isPublicProfile      Boolean            @default(true)
   location             String?
   latitude             Float?
@@ -362,7 +362,6 @@ model UserBadge {
   @@index([badgeId])
 }
 
-
 model Event {
   id          String    @id @default(cuid())
   title       String
@@ -410,7 +409,6 @@ model Service {
   @@index([category])
   @@index([createdBy])
 }
-
 
 model VisitorLog {
   id          String    @id @default(cuid())

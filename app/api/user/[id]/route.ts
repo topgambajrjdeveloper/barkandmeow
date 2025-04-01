@@ -1,76 +1,50 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/auth"
 import prisma from "@/lib/prismadb"
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    // Resolver la promesa params antes de acceder a sus propiedades
-    const resolvedParams = await params
-    const paramId = resolvedParams.id
+    console.log("API /api/profile/[id] - Recibida solicitud para ID:", params.id)
 
-    const session = await auth()
-
-    if (!session || !session.user) {
-      console.log("No authorized session")
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    // Verificar si el ID es válido
+    if (!params.id) {
+      console.error("ID no proporcionado")
+      return NextResponse.json({ error: "ID no proporcionado" }, { status: 400 })
     }
 
-    const userId = paramId === "me" ? session.user.id : paramId
-    console.log("Resolved user ID:", userId)
+    // Determinar si es "me" y obtener el ID del usuario actual si es necesario
+    const userId = params.id
+    if (userId === "me") {
+      // Aquí deberías implementar la lógica para obtener el ID del usuario actual
+      // Por ejemplo, usando la sesión de autenticación
+      // userId = session?.user?.id;
 
-    try {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          pets: {
-            include: {
-              passport: true,
-              healthCard: true,
-            },
-          },
-        },
-      })
-
-      if (!user) {
-        console.log("User not found")
-        return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
-      }
-
-      console.log("User found:", user.id)
-
-      // If the profile is not public and it's not the authenticated user, limit the information
-      if (!user.isPublicProfile && userId !== session.user.id) {
-        console.log("Returning limited public profile")
-        return NextResponse.json({
-          id: user.id,
-          username: user.username,
-          profileImage: user.profileImage,
-          isPublicProfile: user.isPublicProfile,
-        })
-      }
-
-      // Prepare the user profile data
-      const userProfile = {
-        ...user,
-        createdAt: user.createdAt.toISOString(),
-        updatedAt: user.updatedAt.toISOString(),
-        pets: user.pets.map((pet) => ({
-          ...pet,
-          createdAt: pet.createdAt.toISOString(),
-          updatedAt: pet.updatedAt.toISOString(),
-          passport: pet.passport,
-          healthCard: pet.healthCard,
-        })),
-      }
-
-      console.log("Returning full user profile")
-      return NextResponse.json(userProfile)
-    } catch (prismaError) {
-      console.error("Prisma error:", prismaError)
-      return NextResponse.json({ error: "Error de base de datos" }, { status: 500 })
+      // Como no tenemos acceso a la sesión aquí, devolvemos un error
+      return NextResponse.json({ error: "Funcionalidad 'me' no implementada" }, { status: 501 })
     }
+
+    // Buscar usuario por ID
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        pets: true, // Incluir la relación de mascotas
+        // Incluir otras relaciones según sea necesario
+      },
+    })
+
+    // Si no se encuentra el usuario
+    if (!user) {
+      console.error("Usuario no encontrado para ID:", userId)
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
+    }
+
+    console.log("Usuario encontrado:", user)
+
+    // Devolver los datos del usuario
+    return NextResponse.json(user)
   } catch (error) {
-    console.error("Error fetching user profile:", error)
+    console.error("Error al obtener perfil:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }

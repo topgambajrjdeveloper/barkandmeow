@@ -135,11 +135,10 @@
     background-color: rgba(155, 155, 155, 0.7);
   }
 }
-
 /* Estilos específicos para el mapa */
 .leaflet-container {
   width: 100% !important;
-  height: 100% !important;
+  height: 75% !important;
   z-index: 10;
 }
 
@@ -199,4 +198,27 @@
 
 .leaflet-control {
   z-index: 1000 !important;
+}
+
+/* Estilos para ocultar la barra de desplazamiento */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* Estilos para el marcador seleccionado */
+.selected-marker {
+  z-index: 1000 !important;
+  transform: scale(1.2);
+  transition: transform 0.2s ease;
+}
+
+/* Añadir variante de badge para veterinarias */
+.badge-success {
+  background-color: hsl(142, 71%, 45%);
+  color: white;
 }

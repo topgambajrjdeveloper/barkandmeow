@@ -157,7 +157,7 @@ export function AdminSidebar() {
     //   icon: <MessageSquare className="mr-2 h-4 w-4" />,
     // },
     {
-      href: "/admin/locations",
+      href: "/admin/location",
       title: "Ubicaciones",
       icon: <Map className="mr-2 h-4 w-4" />,
     },

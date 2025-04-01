@@ -22,9 +22,6 @@ export async function GET() {
         username: true,
         email: true,
         profileImage: true,
-        petName: true,
-        petType: true,
-        petImage: true,
         bio: true, // Incluimos el campo bio
         location: true,
         isPublicProfile: true,

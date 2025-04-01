@@ -1,81 +1,85 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
-import Link from "next/link"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle, CheckCircle, Loader2 } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Loader2, CheckCircle, XCircle } from "lucide-react"
 
 export default function ConfirmEmailPage() {
-  const [isConfirming, setIsConfirming] = useState(true)
-  const [isSuccess, setIsSuccess] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
 
-  useEffect(() => {
-    const confirmEmail = async () => {
-      if (!token) {
-        setError("Token no proporcionado")
-        setIsConfirming(false)
-        return
-      }
+  const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
+  const [message, setMessage] = useState<string>("")
 
+  useEffect(() => {
+    if (!token) {
+      setStatus("error")
+      setMessage("Token de confirmación no válido o faltante.")
+      return
+    }
+
+    const confirmEmail = async () => {
       try {
         const response = await fetch(`/api/confirm-email?token=${token}`)
+
         if (response.ok) {
-          setIsSuccess(true)
+          setStatus("success")
+          setMessage("¡Tu correo electrónico ha sido confirmado correctamente!")
+          // Redirigir al login después de 3 segundos
+          setTimeout(() => {
+            router.push("/login?confirmed=true")
+          }, 3000)
         } else {
           const data = await response.json()
-          setError(data.error || "No se pudo confirmar el correo electrónico")
+          setStatus("error")
+          setMessage(data.error || "Error al confirmar el correo electrónico.")
         }
       } catch (error) {
-        console.error("Error confirming email:", error)
-        setError("Ocurrió un error al confirmar el correo electrónico")
-      } finally {
-        setIsConfirming(false)
+        setStatus("error")
+        setMessage("Error al procesar la confirmación. Por favor, inténtalo de nuevo.")
       }
     }
 
     confirmEmail()
-  }, [token])
+  }, [token, router])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="container flex items-center justify-center min-h-screen py-12">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Confirmación de Correo Electrónico</CardTitle>
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Confirmación de Correo</CardTitle>
+          <CardDescription>Verificando tu dirección de correo electrónico</CardDescription>
         </CardHeader>
-        <CardContent>
-          {isConfirming ? (
-            <div className="flex flex-col items-center space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p>Confirmando tu correo electrónico...</p>
-            </div>
-          ) : isSuccess ? (
-            <Alert className="bg-green-50 border-green-200">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <AlertDescription className="text-green-800">
-                Tu correo electrónico ha sido confirmado exitosamente.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <Alert variant="destructive">
-              <AlertCircle className="h-5 w-5" />
-              <AlertDescription>
-                {error ||
-                  "No se pudo confirmar tu correo electrónico. Por favor, intenta nuevamente o contacta a soporte."}
-              </AlertDescription>
-            </Alert>
+        <CardContent className="flex flex-col items-center space-y-4">
+          {status === "loading" && (
+            <>
+              <Loader2 className="h-16 w-16 text-primary animate-spin" />
+              <p>Verificando tu correo electrónico...</p>
+            </>
+          )}
+
+          {status === "success" && (
+            <>
+              <CheckCircle className="h-16 w-16 text-green-500" />
+              <p className="text-center">{message}</p>
+              <p className="text-sm text-muted-foreground">
+                Serás redirigido a la página de inicio de sesión en unos segundos...
+              </p>
+              <Button onClick={() => router.push("/login?confirmed=true")}>Ir a iniciar sesión</Button>
+            </>
+          )}
+
+          {status === "error" && (
+            <>
+              <XCircle className="h-16 w-16 text-red-500" />
+              <p className="text-center text-red-500">{message}</p>
+              <Button onClick={() => router.push("/login")}>Volver a iniciar sesión</Button>
+            </>
           )}
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <Button asChild>
-            <Link href="/">Volver al Inicio</Link>
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   )

@@ -2,7 +2,8 @@
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
-import { Crown } from "lucide-react"
+
+import Image from "next/image"
 
 interface PremiumBadgeProps {
   showTooltip?: boolean
@@ -12,10 +13,10 @@ interface PremiumBadgeProps {
 export function PremiumBadge({ showTooltip = true, className = "" }: PremiumBadgeProps) {
   const badge = (
     <Badge
-      className={`bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 flex items-center gap-1 ${className}`}
+      className={`bg-amber-100 text-amber-800 dark:bg-primary dark:text-background flex items-center gap-1 ${className}`}
     >
-      <Crown className="h-3 w-3" />
-      <span>Premium</span>
+      <Image src='/badges/premium.png' alt="" height={30} width={30} className="h-3 w-3" />
+            <span>Premium</span>
     </Badge>
   )
 

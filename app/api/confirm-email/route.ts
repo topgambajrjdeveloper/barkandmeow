@@ -1,35 +1,41 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prismadb"
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const token = searchParams.get("token")
-
-  if (!token) {
-    return NextResponse.json({ error: "Token no proporcionado" }, { status: 400 })
-  }
-
+export async function GET(request: NextRequest) {
   try {
-    const user = await prisma.user.findFirst({
-      where: { confirmationToken: token },
-    })
+    const token = request.nextUrl.searchParams.get("token")
 
-    if (!user) {
-      return NextResponse.json({ error: "Token inválido" }, { status: 400 })
+    if (!token) {
+      return NextResponse.redirect(new URL("/login?error=invalid-token", request.url))
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        isEmailConfirmed: true,
-        confirmationToken: null,
+    // Buscar usuario con el token de confirmación
+    const user = await prisma.user.findFirst({
+      where: {
+        confirmationToken: token,
       },
     })
 
-    return NextResponse.json({ message: "Email confirmado exitosamente" })
+    if (!user) {
+      return NextResponse.redirect(new URL("/login?error=invalid-token", request.url))
+    }
+
+    // Actualizar usuario como confirmado
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        isEmailConfirmed: true,
+        confirmationToken: null, // Eliminar el token después de usarlo
+      },
+    })
+
+    // Redirigir a la página de login con mensaje de éxito
+    return NextResponse.redirect(new URL("/login?confirmed=true", request.url))
   } catch (error) {
-    console.error("Error al confirmar email:", error)
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+    console.error("Error confirming email:", error)
+    return NextResponse.redirect(new URL("/login?error=server-error", request.url))
   }
 }
 

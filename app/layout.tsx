@@ -11,6 +11,7 @@ import Footer from "@/components/(root)/ui/footer";
 import { CookieConsent } from "@/components/cookie-consent";
 import { PWAInstallPrompt } from "@/components/(root)/pwa-install-prompt";
 import AnalyticsTracker from "@/components/(admin)/analytics/(client)/analytics-tracker";
+import Analytics from "@/components/analytics";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -146,6 +147,7 @@ export default function RootLayout({
               </div>
               <PWAInstallPrompt />
               <AnalyticsTracker />
+              <Analytics />
             </ThemeProvider>
           </UserProvider>
         </SessionProvider>

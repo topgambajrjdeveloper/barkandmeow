@@ -12,6 +12,7 @@ import { AlertCircle } from "lucide-react"
 import type { RegisterInput } from "@/lib/validations"
 import { getUserLocation, type LocationData } from "@/lib/location"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function RegisterForm() {
   const router = useRouter()
@@ -25,6 +26,7 @@ export function RegisterForm() {
     petImage: null,
     isPublicProfile: true,
     location: "",
+    role: "USER"
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
@@ -69,13 +71,29 @@ export function RegisterForm() {
     }
   }
 
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setErrors({})
 
+    // Validación básica del lado del cliente
+    if (!formData.username || !formData.email || !formData.password) {
+      setErrors({ form: "Por favor completa todos los campos requeridos" })
+      setIsLoading(false)
+      return
+    }
+
     try {
       const formDataToSend = new FormData()
+
+      // Añadir todos los campos del formulario
       Object.entries(formData).forEach(([key, value]) => {
         if (value instanceof File) {
           formDataToSend.append(key, value)
@@ -86,10 +104,28 @@ export function RegisterForm() {
         }
       })
 
+      // Añadir datos de ubicación si están disponibles
       if (locationData) {
-        formDataToSend.append("latitude", locationData.latitude?.toString() || "")
-        formDataToSend.append("longitude", locationData.longitude?.toString() || "")
+        if (locationData.latitude) {
+          formDataToSend.append("latitude", locationData.latitude.toString())
+        }
+        if (locationData.longitude) {
+          formDataToSend.append("longitude", locationData.longitude.toString())
+        }
       }
+
+      // Imprimir los datos que se están enviando para depuración
+      console.log("Enviando datos de registro:", {
+        username: formData.username,
+        email: formData.email,
+        password: "***", // No mostrar la contraseña real
+        petName: formData.petName,
+        petType: formData.petType,
+        isPublicProfile: formData.isPublicProfile,
+        location: formData.location,
+        hasProfileImage: !!formData.profileImage,
+        hasPetImage: !!formData.petImage,
+      })
 
       const response = await fetch("/api/register", {
         method: "POST",
@@ -99,6 +135,7 @@ export function RegisterForm() {
       const data = await response.json()
 
       if (!response.ok) {
+        console.error("Error en la respuesta:", data)
         if (data.errors) {
           const fieldErrors: Record<string, string> = {}
           data.errors.forEach((error: { field: string; message: string }) => {
@@ -112,8 +149,9 @@ export function RegisterForm() {
         return
       }
 
-      router.push("/login?registered=true")
+      router.push("/login")
     } catch (error) {
+      console.error("Error durante el registro:", error)
       if (error instanceof Error) {
         setErrors({ form: error.message })
       } else {
@@ -133,19 +171,19 @@ export function RegisterForm() {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="username">Nombre de usuario</Label>
+        <Label htmlFor="username">Nombre de usuario *</Label>
         <Input id="username" name="username" value={formData.username} onChange={handleChange} required />
         {errors.username && <p className="text-red-500 text-sm">{errors.username}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">Email *</Label>
         <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
         {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Contraseña</Label>
+        <Label htmlFor="password">Contraseña *</Label>
         <Input
           id="password"
           name="password"
@@ -164,14 +202,26 @@ export function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="petName">Nombre de la mascota</Label>
+        <Label htmlFor="petName">Nombre de la mascota *</Label>
         <Input id="petName" name="petName" value={formData.petName} onChange={handleChange} required />
         {errors.petName && <p className="text-red-500 text-sm">{errors.petName}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="petType">Tipo de mascota</Label>
-        <Input id="petType" name="petType" value={formData.petType} onChange={handleChange} required />
+        <Label htmlFor="petType">Tipo de mascota *</Label>
+        <Select value={formData.petType} onValueChange={(value) => handleSelectChange("petType", value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecciona un tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Perro">Perro</SelectItem>
+            <SelectItem value="Gato">Gato</SelectItem>
+            <SelectItem value="Ave">Ave</SelectItem>
+            <SelectItem value="Pez">Pez</SelectItem>
+            <SelectItem value="Reptil">Reptil</SelectItem>
+            <SelectItem value="Otro">Otro</SelectItem>
+          </SelectContent>
+        </Select>
         {errors.petType && <p className="text-red-500 text-sm">{errors.petType}</p>}
       </div>
 

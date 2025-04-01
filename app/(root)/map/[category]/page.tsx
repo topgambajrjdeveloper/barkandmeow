@@ -1,21 +1,47 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { MapPin, Clock } from "lucide-react"
 import { toast } from "sonner"
 import dynamic from "next/dynamic"
 import type { Service } from "@/types"
 import { getUserLocation } from "@/lib/location"
 import { use } from "react"
+import { ArrowLeft, MapPin, Store, Stethoscope, Coffee } from "lucide-react"
+import Link from "next/link"
+import { Card, CardContent } from "@/components/ui/card"
 
 // Cargar el componente de mapa dinámicamente para evitar problemas de SSR
 const MapComponent = dynamic(() => import("@/components/(auth)/components/map/map-component"), {
   ssr: false,
-  loading: () => <div className="h-[700px] w-full bg-muted flex items-center justify-center">Cargando mapa...</div>,
+  loading: () => <div className="h-screen w-full bg-muted flex items-center justify-center">Cargando mapa...</div>,
 })
+
+// Categorías disponibles
+const categories = [
+  {
+    id: "pet-friendly",
+    title: "Pet-Friendly",
+    description: "Lugares donde puedes ir con tu mascota",
+    icon: <Coffee className="h-5 w-5" />,
+    color: "bg-black text-white",
+  },
+  {
+    id: "shop",
+    title: "Tiendas",
+    description: "Tiendas de mascotas y accesorios",
+    icon: <Store className="h-5 w-5" />,
+    color: "bg-orange-500 text-white",
+  },
+  {
+    id: "vet",
+    title: "Veterinarias",
+    description: "Clínicas y hospitales veterinarios",
+    icon: <Stethoscope className="h-5 w-5" />,
+    color: "bg-green-500 text-white",
+  },
+]
 
 export default function MapCategoryPage({ params }: { params: Promise<{ category: string }> }) {
   // Obtener la categoría de los parámetros de la ruta usando React.use()
@@ -91,17 +117,6 @@ export default function MapCategoryPage({ params }: { params: Promise<{ category
         const data = await response.json()
         console.log("Received data:", Array.isArray(data) ? data.length : 0, "places")
 
-        // Añadir log detallado para verificar las coordenadas
-        if (Array.isArray(data) && data.length > 0) {
-          console.log("Sample place data:", {
-            title: data[0].title,
-            category: data[0].category,
-            subCategory: data[0].subCategory,
-            latitude: data[0].latitude,
-            longitude: data[0].longitude,
-          })
-        }
-
         if (isMounted) {
           setPlaces(Array.isArray(data) ? data : [])
         }
@@ -145,14 +160,9 @@ export default function MapCategoryPage({ params }: { params: Promise<{ category
     }
   }
 
-  // Función para manejar el clic en una tarjeta
-  const handlePlaceClick = (place: Service) => {
+  // Función para manejar el clic en un marcador
+  const handleMarkerClick = (place: Service) => {
     setSelectedPlace(place)
-
-    // Centrar el mapa en la ubicación del lugar seleccionado
-    if (mapRef.current && place.latitude && place.longitude) {
-      mapRef.current.flyToLocation(place.latitude, place.longitude, place)
-    }
   }
 
   // Determinar el título según la categoría
@@ -169,98 +179,82 @@ export default function MapCategoryPage({ params }: { params: Promise<{ category
     }
   }
 
+  // Obtener el icono según la categoría
+  const getCategoryIcon = () => {
+    const categoryInfo = categories.find((c) => c.id === category)
+    return categoryInfo?.icon || <MapPin className="h-5 w-5" />
+  }
+
+  // Función para cambiar de categoría
+  const handleCategoryChange = (categoryId: string) => {
+    // Navegar a la nueva categoría
+    window.location.href = `/map/${categoryId}`
+  }
+
   return (
-    <div className="container py-6 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">{getTitle()}</h1>
-          <p className="text-muted-foreground">
-            {userLocation
-              ? "Mostrando lugares cercanos a tu ubicación"
-              : "Activa la ubicación para ver lugares cercanos"}
-          </p>
+    <div className="h-screen w-full flex flex-col">
+      {/* Header con título y botones */}
+      <div className="p-4 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" asChild>
+            <Link
+              href={`/map?category=${category === "pet-friendly" ? "shop" : category === "shop" ? "vet" : "pet-friendly"}`}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div className="flex items-center gap-2">
+            <div className={`p-1.5 rounded-full ${categories.find((c) => c.id === category)?.color || "bg-primary"}`}>
+              {getCategoryIcon()}
+            </div>
+            <h1 className="text-xl font-bold">{getTitle()}</h1>
+          </div>
         </div>
-        <Button onClick={updateLocation} variant="outline">
+        <Button onClick={updateLocation} variant="outline" size="sm">
           Actualizar ubicación
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 h-[700px]">
-          {isLoading ? (
-            <Skeleton className="h-full w-full" />
-          ) : (
-            <div className="h-full w-full">
-              <MapComponent
-                places={places}
-                userLocation={userLocation}
-                onMarkerClick={(place) => setSelectedPlace(place)}
-                height="700px"
-                ref={mapRef}
-              />
+      {/* Contenedor del mapa a pantalla completa */}
+      <div className="flex-1 relative">
+        {isLoading ? (
+          <div className="h-full w-full flex items-center justify-center bg-muted">
+            <Skeleton className="h-20 w-20 rounded-full" />
+          </div>
+        ) : (
+          <div className="relative h-full">
+            <MapComponent
+              places={places}
+              userLocation={userLocation}
+              onMarkerClick={handleMarkerClick}
+              height="100%"
+              ref={mapRef}
+            />
+
+            {/* Categorías en la parte inferior con scroll horizontal - ahora dentro del mapa */}
+            <div className="absolute bottom-4 left-0 right-0 z-[500] px-4 overflow-x-auto scrollbar-hide">
+              <div className="flex space-x-4 pb-2">
+                {categories.map((cat) => (
+                  <Card
+                    key={cat.id}
+                    className={`flex-shrink-0 w-64 cursor-pointer ${cat.id === category ? "ring-2 ring-primary" : ""}`}
+                    onClick={() => handleCategoryChange(cat.id)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${cat.color}`}>{cat.icon}</div>
+                        <div>
+                          <h3 className="font-medium">{cat.title}</h3>
+                          <p className="text-xs text-muted-foreground">{cat.description}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
-          )}
-        </div>
-        <div className="space-y-4 max-h-[700px] overflow-y-auto">
-          {isLoading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <Skeleton className="h-6 w-3/4" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-3/4" />
-                </CardContent>
-              </Card>
-            ))
-          ) : places.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-center">No hay lugares disponibles en esta categoría</p>
-              </CardContent>
-            </Card>
-          ) : (
-            places.map((place) => (
-              <Card
-                key={place.id}
-                className={`cursor-pointer transition-all ${selectedPlace?.id === place.id ? "border-primary" : ""}`}
-                onClick={() => handlePlaceClick(place)}
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{place.title}</CardTitle>
-                  <p className="text-xs text-muted-foreground flex items-center">
-                    <MapPin className="h-3 w-3 mr-1" />
-                    {place.address || "Dirección no disponible"}
-                    {place.distance != null && <span className="ml-1">• a {place.distance.toFixed(1)} km</span>}
-                  </p>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  {place.openingHours && (
-                    <p className="text-xs flex items-center text-muted-foreground mb-2">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {place.openingHours}
-                    </p>
-                  )}
-                  <div className="flex gap-2 mt-2">
-                    {place.latitude && place.longitude && (
-                      <Button variant="outline" size="sm" asChild className="text-xs">
-                        <a
-                          href={`https://www.openstreetmap.org/directions?from=&to=${place.latitude}%2C${place.longitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <MapPin className="h-3 w-3 mr-1" />
-                          Cómo llegar
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
